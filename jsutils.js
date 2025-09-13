@@ -9,11 +9,16 @@ const STORAGE_KEY = 'clashSchedulerData';
 function loadData(accountsConfig) {
     const data = localStorage.getItem(STORAGE_KEY);
     if (data) {
-        // 確保舊資料也能兼容新的 levels 結構
         const parsedData = JSON.parse(data);
+        // 確保所有帳號都有 levels 和 workerCounts 結構
         accountsConfig.forEach(acc => {
-            if (parsedData.accounts[acc.name] && !parsedData.accounts[acc.name].levels) {
-                parsedData.accounts[acc.name].levels = {};
+            if (parsedData.accounts[acc.name]) {
+                if (!parsedData.accounts[acc.name].levels) {
+                    parsedData.accounts[acc.name].levels = {};
+                }
+                if (!parsedData.accounts[acc.name].workerCounts) {
+                    parsedData.accounts[acc.name].workerCounts = {};
+                }
             }
         });
         return parsedData;
@@ -24,11 +29,13 @@ function loadData(accountsConfig) {
         initialData.accounts[acc.name] = {
             avatar: acc.avatar,
             tasks: [],
-            levels: {} // 初始化 levels 物件
+            levels: {}, // 初始化 levels 物件
+            workerCounts: {} // 初始化 workerCounts 物件
         };
     });
     return initialData;
 }
+
 
 /**
  * 儲存資料到 localStorage

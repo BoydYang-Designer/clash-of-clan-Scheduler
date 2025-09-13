@@ -13,7 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'home-village', title: '家鄉大本營', defaultLevel: '5', unit: '本' },
         { id: 'builder-base', title: '建築大師基地', defaultLevel: '2', unit: '本' },
         { id: 'laboratory', title: '實驗室', defaultLevel: '5', unit: '級' },
-        { id: 'star-laboratory', title: '星空實驗室', defaultLevel: '5', unit: '級' }
+        { id: 'star-laboratory', title: '星空實驗室', defaultLevel: '5', unit: '級' },
+        { id: 'pet-house', title: '戰寵小屋', defaultLevel: '1', unit: '級' } // 新增戰寵小屋
     ];
 
     // --- 全局狀態 ---
@@ -32,7 +33,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById(pageId).classList.add('active');
         
         if (pageId === 'scheduler-page') {
-            renderScheduler(appData);
+            // 傳遞 SECTIONS_CONFIG 以便渲染器可以查找標題
+            renderScheduler(appData, SECTIONS_CONFIG);
         }
     }
 
@@ -44,9 +46,12 @@ document.addEventListener('DOMContentLoaded', () => {
             slide.className = 'account-page-slide';
             slide.dataset.index = index;
 
-            // 確保每個帳號都有 levels 物件
+            // 確保每個帳號都有 levels 和 workerCounts 物件
             if (!data.accounts[acc.name].levels) {
                 data.accounts[acc.name].levels = {};
+            }
+            if (!data.accounts[acc.name].workerCounts) {
+                data.accounts[acc.name].workerCounts = {};
             }
 
             let sectionsHtml = '';
@@ -63,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                         <div class="worker-count-input">
                             <label>工人數：</label>
-                            <input type="number" class="worker-count" min="1" max="10" placeholder="0" data-account="${acc.name}" data-section="${sec.id}">
+                            <input type="number" class="worker-count" min="0" max="10" placeholder="0" data-account="${acc.name}" data-section="${sec.id}">
                         </div>
                         <div class="worker-rows-container"></div>
                     </div>
@@ -121,28 +126,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // --- 從數據恢復輸入狀態 (僅恢復工人任務) ---
+    // --- 從數據恢復輸入狀態 (恢復工人數和任務) ---
     function restoreInputsFromData(data) {
         Object.keys(data.accounts).forEach(accountName => {
-            const sectionWorkerCounts = {};
-            data.accounts[accountName].tasks.forEach(task => {
-                if (task.section && task.worker) {
-                    if (!sectionWorkerCounts[task.section]) {
-                        sectionWorkerCounts[task.section] = new Set();
+            const account = data.accounts[accountName];
+            if (account.workerCounts) {
+                Object.keys(account.workerCounts).forEach(sectionId => {
+                    const count = account.workerCounts[sectionId];
+                    const countInput = document.querySelector(`.worker-count[data-account="${accountName}"][data-section="${sectionId}"]`);
+                    if (countInput) {
+                        countInput.value = count;
+                        const container = countInput.closest('.input-section').querySelector('.worker-rows-container');
+                        generateWorkerRows(container, count, accountName, sectionId);
                     }
-                    sectionWorkerCounts[task.section].add(task.worker);
-                }
-            });
-
-            Object.keys(sectionWorkerCounts).forEach(sectionId => {
-                const count = sectionWorkerCounts[sectionId].size;
-                const countInput = document.querySelector(`.worker-count[data-account="${accountName}"][data-section="${sectionId}"]`);
-                if(countInput) {
-                    countInput.value = count;
-                    const container = countInput.closest('.input-section').querySelector('.worker-rows-container');
-                    generateWorkerRows(container, count, accountName, sectionId);
-                }
-            });
+                });
+            }
         });
     }
 
@@ -192,22 +190,30 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('go-to-scheduler-from-home').addEventListener('click', () => navigateTo('scheduler-page'));
     document.getElementById('go-to-accounts-from-home').addEventListener('click', () => navigateTo('accounts-page'));
     document.getElementById('go-to-scheduler-from-accounts').addEventListener('click', () => navigateTo('scheduler-page'));
-    // 已移除 document.getElementById('back-to-accounts').addEventListener('click', () => navigateTo('accounts-page'));
+    document.getElementById('go-to-accounts-from-scheduler').addEventListener('click', () => navigateTo('accounts-page'));
+
 
     // 帳號頁面輸入 (事件委派)
     accountsPage.addEventListener('input', e => {
+        const accountName = e.target.dataset.account;
+        const sectionId = e.target.dataset.section;
+
         // 處理工人數變更
         if (e.target.classList.contains('worker-count')) {
             const count = parseInt(e.target.value, 10) || 0;
-            const accountName = e.target.dataset.account;
-            const sectionId = e.target.dataset.section;
             const container = e.target.closest('.input-section').querySelector('.worker-rows-container');
+            
+            // 保存工人數
+            if (!appData.accounts[accountName].workerCounts) {
+                appData.accounts[accountName].workerCounts = {};
+            }
+            appData.accounts[accountName].workerCounts[sectionId] = count;
+            saveData(appData);
+
             generateWorkerRows(container, count, accountName, sectionId);
         }
         // 處理等級變更
         if (e.target.classList.contains('level-input')) {
-            const accountName = e.target.dataset.account;
-            const sectionId = e.target.dataset.section;
             if (!appData.accounts[accountName].levels) {
                 appData.accounts[accountName].levels = {};
             }
@@ -227,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (account) {
                 // 1. 找到對應任務並移除
                 account.tasks = account.tasks.filter(task => task.id !== taskId);
-                // 2. 儲存
+                // 2. 儲存 (工人數不受影響)
                 saveData(appData);
 
                 // 3. 找到對應帳號的索引
