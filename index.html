@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clash Scheduler</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+    <script defer src="jsutils.js"></script>
+    <script defer src="jsscheduler.js"></script>
+    <script defer src="jsapp.js"></script>
+</head>
+<body>
+    <main id="app-container">
+
+        <section id="home-page" class="page active">
+            <div class="home-content">
+                <h1 class="main-title">Clash Scheduler</h1>
+                <div class="home-nav">
+                    <button id="go-to-scheduler-from-home" class="btn btn-primary">查看總排程</button>
+                    <button id="go-to-accounts-from-home" class="btn btn-secondary">編輯帳號任務</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="accounts-page" class="page">
+            <div class="account-slider-container">
+                </div>
+            <div class="slider-nav">
+                <button id="prev-account" class="slider-arrow">‹</button>
+                <span id="account-indicator">1 / 5</span>
+                <button id="next-account" class="slider-arrow">›</button>
+            </div>
+            <footer class="page-footer">
+                <button id="go-to-scheduler-from-accounts" class="btn btn-primary">查看總排程</button>
+            </footer>
+        </section>
+
+        <section id="scheduler-page" class="page">
+            <header class="page-header">
+                <h2>所有排程任務</h2>
+            </header>
+            <div id="task-list" class="task-list-container">
+                </div>
+            <footer class="page-footer">
+                <button id="back-to-accounts" class="btn btn-secondary">返回帳號頁面</button>
+            </footer>
+        </section>
+
+    </main>
+</body>
+</html>
