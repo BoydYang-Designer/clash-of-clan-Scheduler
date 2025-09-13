@@ -222,7 +222,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // *** 主要修改處：處理排程頁面刪除的邏輯 ***
+    // *** 新增：解決手機輸入時畫面滑動問題 ***
+    // 使用 'focusin' 事件（可冒泡的 focus）
+    accountsPage.addEventListener('focusin', (e) => {
+        // 如果事件目標是任何輸入框
+        if (e.target.matches('input, select')) {
+            // 禁用水平滑動
+            accountSlider.style.overflowX = 'hidden';
+        }
+    });
+
+    // 使用 'focusout' 事件（可冒泡的 blur）
+    accountsPage.addEventListener('focusout', (e) => {
+        // 如果事件目標是任何輸入框
+        if (e.target.matches('input, select')) {
+            // 重新啟用水平滑動
+            accountSlider.style.overflowX = 'scroll';
+        }
+    });
+
+
+    // 排程頁面刪除的邏輯
     taskListContainer.addEventListener('click', (e) => {
         const deleteButton = e.target.closest('.btn-delete');
         if (deleteButton) {
