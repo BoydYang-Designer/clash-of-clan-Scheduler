@@ -95,22 +95,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const existingTask = accountTasks.find(t => t.worker === workerId);
             const taskId = existingTask ? existingTask.id : `${accountName}-${sectionId}-${workerId}-${Date.now()}`;
 
+            // 處理時長數據結構
+            // 確保 existingTask?.duration 是一個物件，以便安全地訪問其屬性
+            const durationData = existingTask?.duration || {};
+
             const row = document.createElement('div');
             row.className = 'worker-row';
             row.innerHTML = `
                 <label class="worker-label">${workerId}</label>
                 <input type="text" class="task-input" placeholder="任務名稱" value="${existingTask?.task || ''}">
-                <input type="number" class="duration-input" placeholder="時間" min="1" step="0.5" value="${existingTask?.duration || ''}">
-                <select class="unit-select">
-                    <option value="小時" ${existingTask?.unit === '小時' ? 'selected' : ''}>小時</option>
-                    <option value="分鐘" ${existingTask?.unit === '分鐘' ? 'selected' : ''}>分鐘</option>
-                    <option value="天" ${existingTask?.unit === '天' ? 'selected' : ''}>天</option>
-                </select>
+                <div class="duration-group">
+                    <input type="number" class="duration-days" placeholder="天" min="0" value="${durationData.days || ''}">
+                    <input type="number" class="duration-hours" placeholder="時" min="0" max="23" value="${durationData.hours || ''}">
+                    <input type="number" class="duration-minutes" placeholder="分" min="0" max="59" value="${durationData.minutes || ''}">
+                </div>
                 <div class="completion-time" readonly>${existingTask?.completion || 'N/A'}</div>
             `;
             container.appendChild(row);
 
-            const inputs = row.querySelectorAll('.task-input, .duration-input, .unit-select');
+            // 獲取所有輸入框
+            const inputs = row.querySelectorAll('.task-input, .duration-group input');
             inputs.forEach(input => {
                 input.addEventListener('input', () => handleTaskInputChange(row, accountName, sectionId, workerId, taskId));
             });
@@ -145,13 +149,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 處理任務輸入變更 ---
     function handleTaskInputChange(row, accountName, sectionId, workerId, taskId) {
         const taskInput = row.querySelector('.task-input').value.trim();
-        const duration = parseFloat(row.querySelector('.duration-input').value, 10);
-        const unit = row.querySelector('.unit-select').value;
-        const completionTimeDiv = row.querySelector('.completion-time');
+        // 讀取新的三個輸入框值
+        const durationDays = parseInt(row.querySelector('.duration-days').value, 10) || 0;
+        const durationHours = parseInt(row.querySelector('.duration-hours').value, 10) || 0;
+        const durationMinutes = parseInt(row.querySelector('.duration-minutes').value, 10) || 0;
 
-        const completionTime = calculateCompletionTime(duration, unit);
+        // 將所有時長換算成總分鐘數
+        const totalDurationInMinutes = (durationDays * 24 * 60) + (durationHours * 60) + durationMinutes;
+
+        // 如果總時長為 0 或非有效數字，則不計算
+        const completionTime = (totalDurationInMinutes > 0) ? calculateCompletionTime(totalDurationInMinutes, '分鐘') : null;
+        const completionTimeDiv = row.querySelector('.completion-time');
         completionTimeDiv.textContent = completionTime || 'N/A';
-        
+
         let task = appData.accounts[accountName].tasks.find(t => t.id === taskId);
         if (!task) {
              task = { id: taskId, section: sectionId, worker: workerId };
@@ -159,10 +169,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         task.task = taskInput;
-        task.duration = duration || null;
-        task.unit = unit;
+        // 將時長儲存為一個物件
+        task.duration = {
+            days: durationDays,
+            hours: durationHours,
+            minutes: durationMinutes
+        };
+        task.unit = '分鐘'; // 固定單位為分鐘
         task.completion = completionTime;
-        
+
         saveData(appData);
     }
     
@@ -177,7 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('go-to-scheduler-from-home').addEventListener('click', () => navigateTo('scheduler-page'));
     document.getElementById('go-to-accounts-from-home').addEventListener('click', () => navigateTo('accounts-page'));
     document.getElementById('go-to-scheduler-from-accounts').addEventListener('click', () => navigateTo('scheduler-page'));
-    document.getElementById('back-to-accounts').addEventListener('click', () => navigateTo('accounts-page'));
+    // 已移除 document.getElementById('back-to-accounts').addEventListener('click', () => navigateTo('accounts-page'));
 
     // 帳號頁面輸入 (事件委派)
     accountsPage.addEventListener('input', e => {

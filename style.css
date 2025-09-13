@@ -235,6 +235,17 @@ body {
     font-size: 16px; /* 增加字體大小 */
 }
 
+/* 新增時長輸入框群組的樣式 */
+.duration-group {
+    display: flex;
+    gap: 5px; /* 輸入框之間的間距 */
+}
+
+.duration-group input {
+    width: 60px; /* 調整輸入框寬度 */
+    text-align: center;
+}
+
 .worker-label {
     font-weight: 700;
     color: var(--color-primary-dark);
