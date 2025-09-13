@@ -22,6 +22,13 @@
     padding: 0;
 }
 
+/* 新增：全局 input 優化（手機觸控與放大問題） */
+input[type="number"], input[type="text"] {
+    touch-action: manipulation; /* 防止雙擊放大 */
+    -webkit-appearance: none; /* iOS: 移除預設樣式 */
+    font-size: 1.5rem; /* 確保 >=16px，避免 iOS 自動放大 */
+}
+
 body {
     font-family: var(--font-primary);
     background-color: var(--color-background);
@@ -250,7 +257,7 @@ body {
 }
 
 .duration-group input {
-    width: 55px; /* 縮小輸入框寬度 */
+    width: 70px; /* 縮小輸入框寬度 */
     text-align: center;
 }
 
@@ -441,26 +448,22 @@ body {
 
 /* --- 響應式設計 --- */
 @media (max-width: 768px) {
-    .main-title { font-size: 3rem; }
-    .home-nav { flex-direction: column; gap: 1rem; }
-    
+.duration-group {
+    justify-content: flex-start; /* 靠左對齊，防止右邊溢出 */
+    padding-left: 0; /* 移除左 padding，如果有 */
+}
+
+    .duration-group input {
+        width: 100%; /* 在手機上全寬，讓每個輸入獨佔一行或更多空間，減少偏移 */
+        min-width: 80px; /* 最小寬度，防止太窄 */
+    }
+
     .worker-row {
-        /* 將排版改為垂直堆疊 */
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        gap: 12px;
-        padding-bottom: 12px;
+        padding: 20px 0; /* 增加垂直 padding，給鍵盤空間 */
     }
 
-    .worker-row .btn-delete {
-        /* 將刪除按鈕放到最底部並置中 */
-        align-self: flex-end;
-    }
-
-    .worker-row input, .worker-row select, .worker-row .completion-time {
-        width: 100%;
-        text-align: left;
+    .account-page-slide {
+        padding-bottom: 150px; /* 增加底部 padding，防止鍵盤推擠最後輸入格子導致偏移 */
     }
 }
 
@@ -497,8 +500,10 @@ body {
     padding-left: 5px; /* 讓時長輸入區塊稍微內縮，對齊下方完成時間 */
 }
 
+
 .duration-group .unit-label {
     margin: 0 8px 0 3px;
     color: var(--color-secondary);
     font-size: 1.3rem;
 }
+

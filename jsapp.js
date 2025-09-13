@@ -306,20 +306,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-accountsPage.addEventListener('focusin', (e) => {
-    // 只要是 input 或 select 元素獲得焦點，就鎖定水平滾動
-    if (e.target.matches('input, select')) {
-        accountSlider.style.overflowX = 'hidden';
-    }
-});
 
-accountsPage.addEventListener('focusout', (e) => {
-    // 在失去焦點時恢復滾動
-    if (e.target.matches('input, select')) {
-        accountSlider.style.overflowX = 'scroll';
-    }
-});
-
+    
     taskListContainer.addEventListener('click', (e) => {
         const deleteButton = e.target.closest('.btn-delete');
         if (deleteButton) {
