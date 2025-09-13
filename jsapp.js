@@ -299,14 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
 accountsPage.addEventListener('focusin', (e) => {
-    const isDurationInput = e.target.classList.contains('duration-minutes') || e.target.classList.contains('duration-hours') || e.target.classList.contains('duration-days');
-
-    // 如果焦點在時間輸入框上，不執行任何操作，讓瀏覽器處理滾動
-    if (isDurationInput) {
-        return;
-    }
-
-    // 如果是其他類型的輸入框或選單，則鎖定滾動
+    // 只要是 input 或 select 元素獲得焦點，就鎖定水平滾動
     if (e.target.matches('input, select')) {
         accountSlider.style.overflowX = 'hidden';
     }
