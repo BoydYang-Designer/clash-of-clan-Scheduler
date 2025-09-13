@@ -141,29 +141,57 @@ function renderAccountPages(configs, data) {
     restoreInputsFromData(data);
 }
 
+function updateWorkerApprenticeSelect(accountName) {
+    const select = document.querySelector(`.account-page-slide[data-account-name="${accountName}"] .apprentice-target-worker`);
+    if (!select) return;
+
+    // 重新獲取 home-village 任務來建立 taskMap
+    const homeVillageTasks = appData.accounts[accountName].tasks.filter(t => t.section === 'home-village');
+    const taskMap = {};
+    homeVillageTasks.forEach(task => {
+        taskMap[task.worker] = task.task || '(無任務)';
+    });
+
+    // 重建選項
+    let workerOptions = '';
+    for (let i = 1; i <= 5; i++) {  // 假設最多 5 個工人，依據您的 workerCounts 調整
+        const workerId = `${i}`;
+        const taskName = taskMap[workerId] || '(無任務)';
+        const selected = appData.accounts[accountName].specialTasks.workerApprentice.targetWorker === workerId ? 'selected' : '';
+        workerOptions += `<option value="${workerId}" ${selected}>${workerId} - ${taskName}</option>`;
+    }
+
+    // 更新 select
+    select.innerHTML = workerOptions;
+}
+
 // --- 修改：accountsPage 事件監聽（在現有的 'input' 事件後，新增 'click' 事件處理收合） ---
 accountsPage.addEventListener('input', e => {
     // ... 原有 input 邏輯保持不變 ...
 });
 
 accountsPage.addEventListener('click', e => {
-        // 【確認】收合/展開邏輯：點擊 section-title
-        if (e.target.closest('.section-title')) {
-            const section = e.target.closest('.input-section');
-            if (section) {
-                const accountName = section.dataset.account;
-                const sectionId = section.dataset.sectionId;
-                const isCurrentlyCollapsed = section.classList.contains('collapsed');
-                section.classList.toggle('collapsed');
-                // 更新資料結構並儲存
-                if (!appData.accounts[accountName].collapsedSections) {
-                    appData.accounts[accountName].collapsedSections = {};
-                }
-                appData.accounts[accountName].collapsedSections[sectionId] = !isCurrentlyCollapsed;
-                saveData(appData);
+    if (e.target.closest('.section-title')) {
+        const section = e.target.closest('.input-section');
+        if (section) {
+            const accountName = section.dataset.account;
+            const sectionId = section.dataset.sectionId;
+            const isCurrentlyCollapsed = section.classList.contains('collapsed');
+            section.classList.toggle('collapsed');
+            // 更新資料結構並儲存
+            if (!appData.accounts[accountName].collapsedSections) {
+                appData.accounts[accountName].collapsedSections = {};
+            }
+            appData.accounts[accountName].collapsedSections[sectionId] = !isCurrentlyCollapsed;
+            saveData(appData);
+
+            // 【新增】如果展開的是 special-tasks，則即時更新工人學徒下拉選單
+            if (sectionId === 'special-tasks' && isCurrentlyCollapsed) {  // 只在從收合轉展開時觸發
+                updateWorkerApprenticeSelect(accountName);
             }
         }
-    });
+    }
+});
 
     // --- 動態生成工人輸入行 ---
     function generateWorkerRows(container, count, accountName, sectionId) {
