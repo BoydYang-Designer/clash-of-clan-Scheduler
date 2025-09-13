@@ -141,16 +141,15 @@ body {
 }
 
 .account-avatar {
-    width: 200px; /* 大幅加大 */
-    height: 200px; /* 大幅加大 */
+    width: 250px; /* 放大頭像 */
+    height: 250px; /* 放大頭像 */
     border-radius: 50%;
     object-fit: cover;
-    border: 6px solid var(--color-primary);
 }
 
 .account-name {
     margin-top: 15px;
-    font-size: 4rem; /* 大幅加大 */
+    font-size: 3.2rem; /* 縮小字級 (原 4rem * 0.8) */
 }
 
 .account-body {
@@ -168,13 +167,14 @@ body {
 
 .section-header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column; /* 改為垂直排列 */
+    align-items: flex-start; /* 左對齊 */
+    gap: 10px; /* 增加標題與輸入框間距 */
     margin-bottom: 30px;
 }
 
 .section-title {
-    font-size: 3.2rem; /* 大幅加大 */
+    font-size: 2.56rem; /* 縮小字級 (原 3.2rem * 0.8) */
     font-weight: 700;
 }
 
@@ -189,25 +189,27 @@ body {
     border: 1px solid var(--color-border);
     border-radius: 8px;
     text-align: center;
-    font-size: 2.6rem; /* 大幅加大 */
+    font-size: 2.6rem; /* 維持不變 */
 }
 
 .level-unit {
     margin-left: 12px;
     color: var(--color-secondary);
-    font-size: 2.2rem; /* 大幅加大 */
+    font-size: 1.76rem; /* 縮小字級 (原 2.2rem * 0.8) */
 }
 
 .worker-count-input {
     display: flex;
-    align-items: center;
+    flex-direction: column; /* 改為垂直排列 */
+    align-items: flex-start; /* 左對齊 */
+    gap: 10px; /* 增加標籤與輸入框間距 */
     margin-bottom: 25px;
 }
 
 .worker-count-input label {
     font-weight: 700;
     margin-right: 18px;
-    font-size: 2.6rem; /* 大幅加大 */
+    font-size: 2.08rem; /* 縮小字級 (原 2.6rem * 0.8) */
 }
 
 .worker-count {
@@ -216,7 +218,7 @@ body {
     border: 1px solid var(--color-border);
     border-radius: 8px;
     text-align: center;
-    font-size: 2.6rem; /* 大幅加大 */
+    font-size: 2.6rem; /* 維持不變 */
 }
 
 .worker-row {
@@ -238,7 +240,7 @@ body {
     padding: 15px;
     border: 1px solid var(--color-border);
     border-radius: 15px;
-    font-size: 2.2rem; /* 大幅加大 */
+    font-size: 2.2rem; /* 維持不變 */
 }
 
 /* 新增時長輸入框群組的樣式 */
@@ -255,11 +257,11 @@ body {
 .worker-label {
     font-weight: 700;
     color: var(--color-primary-dark);
-    font-size: 2.4rem; /* 大幅加大 */
+    font-size: 1.92rem; /* 縮小字級 (原 2.4rem * 0.8) */
 }
 
 .completion-time {
-    font-size: 2rem; /* 大幅加大 */
+    font-size: 1.6rem; /* 縮小字級 (原 2rem * 0.8) */
     color: var(--color-text-light);
     text-align: right;
     white-space: nowrap; /* 防止換行 */
@@ -318,7 +320,7 @@ body {
 }
 
 #scheduler-page .page-header h2 {
-    font-size: 4.5rem; /* 大幅加大 */
+    font-size: 3.6rem; /* 縮小字級 (原 4.5rem * 0.8) */
 }
 
 .task-list-container {
@@ -344,6 +346,7 @@ body {
     border-radius: 50%;
     object-fit: cover;
     flex-shrink: 0; /* 防止頭像被壓縮 */
+    border: 4px solid var(--color-primary); /* 增加藍色框 */
 }
 
 .task-info {
@@ -354,13 +357,13 @@ body {
 }
 
 .task-account-name {
-    font-size: 2.75rem; /* 大幅加大 */
+    font-size: 2.2rem; /* 縮小字級 (原 2.75rem * 0.8) */
     color: var(--color-secondary);
     font-style: italic;
 }
 
 .task-section-name {
-    font-size: 2.25rem; /* 大幅加大 */
+    font-size: 1.8rem; /* 縮小字級 (原 2.25rem * 0.8) */
     font-weight: 700;
     color: var(--color-primary-dark);
     background-color: #e9ecef;
@@ -372,12 +375,12 @@ body {
 
 .task-name {
     font-weight: 700;
-    font-size: 3.25rem; /* 大幅加大 */
+    font-size: 2.6rem; /* 縮小字級 (原 3.25rem * 0.8) */
 }
 
 .task-completion {
     color: var(--color-text-light);
-    font-size: 2.5rem; /* 大幅加大 */
+    font-size: 2.0rem; /* 縮小字級 (原 2.5rem * 0.8) */
 }
 
 .btn-delete {
