@@ -62,19 +62,20 @@ function calculateCompletionTime(duration, unit) {
             futureDate.setMinutes(now.getMinutes() + duration);
             break;
         case '小時':
-            futureDate.setHours(now.getHours() + duration);
+            // 將小數小時轉換為分鐘
+            futureDate.setMinutes(now.getMinutes() + duration * 60);
             break;
         case '天':
-            futureDate.setDate(now.getDate() + duration);
+            // 將小數天轉換為小時
+            futureDate.setHours(now.getHours() + duration * 24);
             break;
     }
 
-    // 格式化輸出: YYYY/MM/DD HH:MM
-    const year = futureDate.getFullYear();
+    // 格式化輸出: MM/DD HH:MM (移除年份)
     const month = String(futureDate.getMonth() + 1).padStart(2, '0');
     const day = String(futureDate.getDate()).padStart(2, '0');
     const hours = String(futureDate.getHours()).padStart(2, '0');
     const minutes = String(futureDate.getMinutes()).padStart(2, '0');
 
-    return `${year}/${month}/${day} ${hours}:${minutes}`;
+    return `${month}/${day} ${hours}:${minutes}`;
 }

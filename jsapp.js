@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
             row.innerHTML = `
                 <label class="worker-label">${workerId}</label>
                 <input type="text" class="task-input" placeholder="任務名稱" value="${existingTask?.task || ''}">
-                <input type="number" class="duration-input" placeholder="時間" min="1" value="${existingTask?.duration || ''}">
+                <input type="number" class="duration-input" placeholder="時間" min="1" step="0.5" value="${existingTask?.duration || ''}">
                 <select class="unit-select">
                     <option value="小時" ${existingTask?.unit === '小時' ? 'selected' : ''}>小時</option>
                     <option value="分鐘" ${existingTask?.unit === '分鐘' ? 'selected' : ''}>分鐘</option>
@@ -145,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 處理任務輸入變更 ---
     function handleTaskInputChange(row, accountName, sectionId, workerId, taskId) {
         const taskInput = row.querySelector('.task-input').value.trim();
-        const duration = parseInt(row.querySelector('.duration-input').value, 10);
+        const duration = parseFloat(row.querySelector('.duration-input').value, 10);
         const unit = row.querySelector('.unit-select').value;
         const completionTimeDiv = row.querySelector('.completion-time');
 
