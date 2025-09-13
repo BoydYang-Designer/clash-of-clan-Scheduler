@@ -184,12 +184,12 @@ body {
 }
 
 .level-input {
-    width: 120px;
+    width: 100px;
     padding: 12px;
     border: 1px solid var(--color-border);
     border-radius: 8px;
     text-align: center;
-    font-size: 2.6rem; /* 維持不變 */
+    font-size: 1.5rem; /* 維持不變 */
 }
 
 .level-unit {
@@ -222,10 +222,10 @@ body {
 }
 
 .worker-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr 0.5fr;
-    align-items: center;
-    gap: 20px;
+    display: flex;
+    flex-direction: column; /* 改為垂直排列 */
+    align-items: stretch; /* 讓子元素撐滿寬度 */
+    gap: 15px; /* 調整垂直間距 */
     padding-bottom: 20px;
     border-bottom: 1px solid var(--color-border);
     margin-bottom: 20px;
@@ -240,7 +240,7 @@ body {
     padding: 15px;
     border: 1px solid var(--color-border);
     border-radius: 15px;
-    font-size: 2.2rem; /* 維持不變 */
+    font-size: 1.5rem; /* 維持不變 */
 }
 
 /* 新增時長輸入框群組的樣式 */
@@ -250,7 +250,7 @@ body {
 }
 
 .duration-group input {
-    width: 80px; /* 調整輸入框寬度 */
+    width: 55px; /* 縮小輸入框寬度 */
     text-align: center;
 }
 
@@ -261,10 +261,19 @@ body {
 }
 
 .completion-time {
-    font-size: 1.6rem; /* 縮小字級 (原 2rem * 0.8) */
+    font-size: 1.6rem;
+    color: var(--color-primary-dark);
+    font-weight: 700;
+    text-align: left; /* 改為靠左對齊 */
+    padding-left: 5px; /* 增加一點左邊距 */
+}
+
+/* 使用 ::before 偽元素來新增標題文字 */
+.completion-time::before {
+    content: "預計完成：";
+    font-weight: 400;
     color: var(--color-text-light);
-    text-align: right;
-    white-space: nowrap; /* 防止換行 */
+    margin-right: 8px;
 }
 
 .slider-nav {
@@ -427,7 +436,7 @@ body {
     padding: 10px;
     border: 1px solid var(--color-border);
     border-radius: 8px;
-    width: 120px;
+    width: 100px;
 }
 
 /* --- 響應式設計 --- */
@@ -453,4 +462,43 @@ body {
         width: 100%;
         text-align: left;
     }
+}
+
+/* --- 新增：特殊任務垂直排版 --- */
+.special-task-block {
+    display: flex;
+    flex-direction: column; /* 讓內容垂直排列 */
+    align-items: flex-start; /* 靠左對齊 */
+    margin-bottom: 25px; /* 與下一個項目間距 */
+}
+.special-task-block label {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 10px; /* 標題與輸入框間距 */
+}
+/* 讓指定工人的下拉選單有自己的樣式 */
+.apprentice-target-worker {
+    width: 200px; /* 給予一個合適的寬度 */
+    margin-top: 10px; /* 與上方的等級輸入框產生間距 */
+}
+
+/* --- 新增：工人任務垂直排版樣式 --- */
+.worker-task-line {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.worker-task-line .task-input {
+    flex-grow: 1; /* 讓任務名稱輸入框填滿剩餘空間 */
+}
+
+.duration-group {
+    padding-left: 5px; /* 讓時長輸入區塊稍微內縮，對齊下方完成時間 */
+}
+
+.duration-group .unit-label {
+    margin: 0 8px 0 3px;
+    color: var(--color-secondary);
+    font-size: 1.3rem;
 }

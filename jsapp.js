@@ -82,17 +82,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="special-tasks-container">
                     <div class="input-section">
                         <h3 class="section-title">特殊任務</h3>
+                        
+                        <div class="special-task-block">
+                            <label>工人學徒等級:</label>
+                            <input type="number" class="special-task-input" data-account="${acc.name}" data-special-task="workerApprentice" value="${specialTasks.workerApprentice.level || ''}">
+                            <select class="special-task-select apprentice-target-worker" data-account="${acc.name}" data-special-task="workerApprenticeTarget">
+                                ${workerOptions}
+                            </select>
+                        </div>
+
                         <div class="special-task-row">
                             <label>實驗助手等級:</label>
                             <input type="number" class="special-task-input" data-account="${acc.name}" data-special-task="labAssistant" value="${specialTasks.labAssistant.level || ''}">
                         </div>
-                        <div class="special-task-row">
-                            <label>工人學徒等級:</label>
-                            <input type="number" class="special-task-input" data-account="${acc.name}" data-special-task="workerApprentice" value="${specialTasks.workerApprentice.level || ''}">
-                            <select class="special-task-select" data-account="${acc.name}" data-special-task="workerApprenticeTarget">
-                                ${workerOptions}
-                            </select>
-                        </div>
+
                     </div>
                 </div>
             `;
@@ -130,12 +133,17 @@ document.addEventListener('DOMContentLoaded', () => {
             row.dataset.sectionId = sectionId;
 
             row.innerHTML = `
-                <label class="worker-label">${workerId}</label>
-                <input type="text" class="task-input" placeholder="任務名稱" value="${existingTask?.task || ''}">
+                <div class="worker-task-line">
+                    <label class="worker-label">${workerId}</label>
+                    <input type="text" class="task-input" placeholder="任務名稱" value="${existingTask?.task || ''}">
+                </div>
                 <div class="duration-group">
-                    <input type="number" class="duration-days" placeholder="天" min="0" value="${durationData.days || ''}">
-                    <input type="number" class="duration-hours" placeholder="時" min="0" max="23" value="${durationData.hours || ''}">
-                    <input type="number" class="duration-minutes" placeholder="分" min="0" max="59" value="${durationData.minutes || ''}">
+                    <input type="number" class="duration-days" placeholder="0" min="0" value="${durationData.days || ''}">
+                    <span class="unit-label">天</span>
+                    <input type="number" class="duration-hours" placeholder="0" min="0" max="23" value="${durationData.hours || ''}">
+                    <span class="unit-label">時</span>
+                    <input type="number" class="duration-minutes" placeholder="0" min="0" max="59" value="${durationData.minutes || ''}">
+                    <span class="unit-label">分</span>
                 </div>
                 <div class="completion-time" readonly></div>
             `;
