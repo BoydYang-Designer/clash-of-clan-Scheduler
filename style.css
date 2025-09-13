@@ -173,6 +173,63 @@ body {
     box-shadow: var(--shadow-sm);
 }
 
+.input-section .section-header {
+    /* ... 原有樣式 ... */
+    cursor: pointer; /* 讓標題可點擊 */
+    user-select: none; /* 防止選取文字 */
+    transition: color 0.2s; /* 平滑過渡 */
+    cursor: pointer; /* 讓標題可點擊 */
+    user-select: none; /* 防止選取文字 */
+    position: relative; /* 為箭頭定位 */
+}
+
+.input-section .section-title:hover {
+    color: var(--color-primary); /* hover 時變色提示可點擊 */
+    transition: color 0.2s; /* 平滑過渡 */
+    display: inline-block; /* 讓箭頭浮動在旁 */
+}
+
+.input-section .section-title::after {
+    content: ' ▼'; /* 預設收起：向下箭頭 */
+    font-size: 0.8em;
+    transition: transform 0.2s ease;
+    display: inline-block;
+    margin-left: 5px;
+}
+
+.input-section:not(.collapsed) .section-title::after {
+    transform: rotate(180deg); /* 展開時：向上箭頭 */
+}
+
+.input-section .section-title:hover {
+    color: var(--color-primary); /* hover 時變色提示可點擊 */
+}
+
+/* 【確認】收起時隱藏內容（除了 section-header） */
+.input-section.collapsed > *:not(.section-header) {
+    display: none;
+}
+
+/* 【確認】內容包裝器（用來統一隱藏） */
+.input-section-body {
+    /* 無特殊樣式，讓子元素正常顯示 */
+}
+
+/* --- 特殊任務樣式（確認相容） --- */
+.special-tasks-container .input-section.collapsed > *:not(.section-header) {
+    display: none; /* 確保特殊任務也隱藏 */
+}
+
+/* 【新增】收起時隱藏內容（除了 section-header） */
+.input-section.collapsed > *:not(.section-header) {
+    display: none;
+}
+
+/* 【新增】內容包裝器（用來統一隱藏） */
+.input-section-body {
+    /* 無特殊樣式，讓子元素正常顯示 */
+}
+
 .section-header {
     display: flex;
     flex-direction: column; /* 改為垂直排列 */

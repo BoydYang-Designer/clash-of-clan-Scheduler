@@ -35,6 +35,21 @@ function loadData(accountsConfig) {
                 workerApprentice: { level: '', targetWorker: '1' }
             };
         }
+
+        // 【新增】確保 collapsedSections 存在，並預設所有區塊為收起 (true)
+        if (!parsedData.accounts[acc.name].collapsedSections) {
+            parsedData.accounts[acc.name].collapsedSections = {};
+        }
+        // 為每個 section ID 設預設收起狀態
+        SECTIONS_CONFIG.forEach(sec => {
+            if (parsedData.accounts[acc.name].collapsedSections[sec.id] === undefined) {
+                parsedData.accounts[acc.name].collapsedSections[sec.id] = true; // 收起
+            }
+        });
+        // 特殊任務也預設收起
+        if (parsedData.accounts[acc.name].collapsedSections['special-tasks'] === undefined) {
+            parsedData.accounts[acc.name].collapsedSections['special-tasks'] = true; // 收起
+        }
     });
     
     return parsedData;

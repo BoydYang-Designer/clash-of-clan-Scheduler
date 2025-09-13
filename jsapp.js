@@ -1,24 +1,24 @@
+// 【修正】將 SECTIONS_CONFIG 移到全域，讓 jsutils.js 可存取
+const SECTIONS_CONFIG = [
+    { id: 'home-village', title: '大本營', defaultLevel: '5', unit: '本' },
+    { id: 'laboratory', title: '實驗室', defaultLevel: '5', unit: '級' },
+    { id: 'pet-house', title: '戰寵小屋', defaultLevel: '1', unit: '級' },
+    { id: 'builder-base', title: '建築大師', defaultLevel: '2', unit: '本' },
+    { id: 'star-laboratory', title: '星空實驗', defaultLevel: '5', unit: '級' },
+];
+
 document.addEventListener('DOMContentLoaded', () => {
-
-    // --- 帳號與區塊設定 ---
+    // --- 帳號與區塊設定 ---（移除 SECTIONS_CONFIG，只保留 ACCOUNTS_CONFIG）
     const ACCOUNTS_CONFIG = [
-        { name: '楊令公', avatar: 'images/楊令公.png' },
-        { name: '奇異果冰沙', avatar: 'images/奇異果冰沙.png' },
         { name: '路人甲', avatar: 'images/路人甲.png' },
+        { name: '奇異果冰沙', avatar: 'images/奇異果冰沙.png' },
+        { name: '鯨頭鸛', avatar: 'images/鯨頭鸛.png' },
+        { name: '楊令公', avatar: 'images/楊令公.png' },
         { name: '燈眼魚', avatar: 'images/燈眼魚.png' },
-        { name: '鯨頭鸛', avatar: 'images/鯨頭鸛.png' }
-    ];
-
-    const SECTIONS_CONFIG = [
-        { id: 'home-village', title: '大本營', defaultLevel: '5', unit: '本' },
-        { id: 'builder-base', title: '建築大師', defaultLevel: '2', unit: '本' },
-        { id: 'laboratory', title: '實驗室', defaultLevel: '5', unit: '級' },
-        { id: 'star-laboratory', title: '星空實驗', defaultLevel: '5', unit: '級' },
-        { id: 'pet-house', title: '戰寵小屋', defaultLevel: '1', unit: '級' }
     ];
 
     // --- 全局狀態 ---
-    let appData = loadData(ACCOUNTS_CONFIG);
+    let appData = loadData(ACCOUNTS_CONFIG);  // 現在 loadData 可存取全域 SECTIONS_CONFIG
     let currentAccountIndex = 0;
 
     // --- DOM 元素 ---
@@ -38,50 +38,43 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- 動態生成帳號頁面 ---
-    function renderAccountPages(configs, data) {
-        accountSlider.innerHTML = '';
-        configs.forEach((acc, index) => {
-            const slide = document.createElement('div');
-            slide.className = 'account-page-slide';
-            slide.dataset.index = index;
-            slide.dataset.accountName = acc.name;
+// --- 動態生成帳號頁面 ---（僅顯示修改部分）
+function renderAccountPages(configs, data) {
+    accountSlider.innerHTML = '';
+    configs.forEach((acc, index) => {
+        const slide = document.createElement('div');
+        slide.className = 'account-page-slide';
+        slide.dataset.index = index;
+        slide.dataset.accountName = acc.name;
 
-            const accountData = data.accounts[acc.name];
+        const accountData = data.accounts[acc.name];
 
-            let sectionsHtml = '';
-            SECTIONS_CONFIG.forEach(sec => {
-                const savedLevel = accountData.levels[sec.id] || sec.defaultLevel;
-                sectionsHtml += `
-                    <div class="input-section" data-section-id="${sec.id}">
-                        <div class="section-header">
-                            <h3 class="section-title">${sec.title}</h3>
-                            <div class="level-input-container">
-                                <input type="text" class="level-input" value="${savedLevel}" data-account="${acc.name}" data-section="${sec.id}">
-                                <span class="level-unit">${sec.unit}</span>
-                            </div>
-                        </div>
-                        <div class="worker-count-input">
-                            <label>工人數：</label>
-                            <input type="number" class="worker-count" min="0" max="10" placeholder="0" data-account="${acc.name}" data-section="${sec.id}">
-                        </div>
-                        <div class="worker-rows-container"></div>
-                    </div>
-                `;
-            });
+        // 【修改】先過濾出 home-village 的任務，來獲取每個工人的任務名稱
+        const homeVillageTasks = accountData.tasks.filter(t => t.section === 'home-village');
+        const taskMap = {}; // 建立工人 ID 到任務名稱的映射
+        homeVillageTasks.forEach(task => {
+            taskMap[task.worker] = task.task || '(無任務)';
+        });
 
-            const specialTasks = accountData.specialTasks;
-            let workerOptions = '';
-            for(let i = 1; i <= 5; i++) {
-                // 【修改】直接使用數字作為 workerId
-                const workerId = `${i}`;
-                workerOptions += `<option value="${workerId}" ${specialTasks.workerApprentice.targetWorker === workerId ? 'selected' : ''}>${workerId}</option>`;
-            }
+        // 【修改】生成 workerOptions 時，加入任務名稱
+        const specialTasks = accountData.specialTasks;
+        let workerOptions = '';
+        for(let i = 1; i <= 5; i++) {
+            const workerId = `${i}`;
+            const taskName = taskMap[workerId] || '(無任務)'; // 如果無任務，顯示預設文字
+            workerOptions += `<option value="${workerId}" ${specialTasks.workerApprentice.targetWorker === workerId ? 'selected' : ''}>${workerId} - ${taskName}</option>`;
+        }
 
-            const specialTasksHtml = `
-                <div class="special-tasks-container">
-                    <div class="input-section">
+        // 【新增】檢查特殊任務的收合狀態
+        const specialCollapsed = accountData.collapsedSections['special-tasks'] || true;
+
+        const specialTasksHtml = `
+            <div class="special-tasks-container">
+                <div class="input-section ${specialCollapsed ? 'collapsed' : ''}" data-section-id="special-tasks" data-account="${acc.name}">
+                    <div class="section-header">
                         <h3 class="section-title">特殊任務</h3>
-                        
+                    </div>
+                    <div class="input-section-body">  <!-- 【新增】包裝內容以便 CSS 隱藏 -->
                         <div class="special-task-block">
                             <label>工人學徒等級:</label>
                             <input type="number" class="special-task-input" data-account="${acc.name}" data-special-task="workerApprentice" value="${specialTasks.workerApprentice.level || ''}">
@@ -94,26 +87,83 @@ document.addEventListener('DOMContentLoaded', () => {
                             <label>實驗助手等級:</label>
                             <input type="number" class="special-task-input" data-account="${acc.name}" data-special-task="labAssistant" value="${specialTasks.labAssistant.level || ''}">
                         </div>
-
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // 【修改】在迴圈中插入特殊任務區塊
+        let sectionsHtml = '';
+        SECTIONS_CONFIG.forEach(sec => {
+            const savedLevel = accountData.levels[sec.id] || sec.defaultLevel;
+            // 【新增】檢查該區塊的收合狀態
+            const isCollapsed = accountData.collapsedSections[sec.id] || true;
+            // 產生一般區塊的 HTML
+            sectionsHtml += `
+                <div class="input-section ${isCollapsed ? 'collapsed' : ''}" data-section-id="${sec.id}" data-account="${acc.name}">
+                    <div class="section-header">
+                        <h3 class="section-title">${sec.title}</h3>
+                    </div>
+                    <div class="input-section-body">  <!-- 【新增】包裝內容以便 CSS 隱藏 -->
+                        <div class="section-header-level">  <!-- 【調整】將 level-input 移到這裡 -->
+                            <div class="level-input-container">
+                                <input type="text" class="level-input" value="${savedLevel}" data-account="${acc.name}" data-section="${sec.id}">
+                                <span class="level-unit">${sec.unit}</span>
+                            </div>
+                        </div>
+                        <div class="worker-count-input">
+                            <label>工人數：</label>
+                            <input type="number" class="worker-count" min="0" max="10" placeholder="0" data-account="${acc.name}" data-section="${sec.id}">
+                        </div>
+                        <div class="worker-rows-container"></div>
                     </div>
                 </div>
             `;
 
-            slide.innerHTML = `
-                <div class="account-header">
-                    <img src="${acc.avatar}" alt="${acc.name} 頭像" class="account-avatar">
-                    <h2 class="account-name">${acc.name}</h2>
-                </div>
-                <div class="account-body">
-                    ${sectionsHtml}
-                    ${specialTasksHtml}
-                </div>
-            `;
-            accountSlider.appendChild(slide);
+            // 如果當前區塊是實驗室，就在它後面插入特殊任務區塊
+            if (sec.id === 'laboratory') {
+                sectionsHtml += specialTasksHtml;
+            }
         });
-        
-        restoreInputsFromData(data);
-    }
+
+        slide.innerHTML = `
+            <div class="account-header">
+                <img src="${acc.avatar}" alt="${acc.name} 頭像" class="account-avatar">
+                <h2 class="account-name">${acc.name}</h2>
+            </div>
+            <div class="account-body">
+                ${sectionsHtml}
+            </div>
+        `;
+        accountSlider.appendChild(slide);
+    });
+    
+    restoreInputsFromData(data);
+}
+
+// --- 修改：accountsPage 事件監聽（在現有的 'input' 事件後，新增 'click' 事件處理收合） ---
+accountsPage.addEventListener('input', e => {
+    // ... 原有 input 邏輯保持不變 ...
+});
+
+accountsPage.addEventListener('click', e => {
+        // 【確認】收合/展開邏輯：點擊 section-title
+        if (e.target.closest('.section-title')) {
+            const section = e.target.closest('.input-section');
+            if (section) {
+                const accountName = section.dataset.account;
+                const sectionId = section.dataset.sectionId;
+                const isCurrentlyCollapsed = section.classList.contains('collapsed');
+                section.classList.toggle('collapsed');
+                // 更新資料結構並儲存
+                if (!appData.accounts[accountName].collapsedSections) {
+                    appData.accounts[accountName].collapsedSections = {};
+                }
+                appData.accounts[accountName].collapsedSections[sectionId] = !isCurrentlyCollapsed;
+                saveData(appData);
+            }
+        }
+    });
 
     // --- 動態生成工人輸入行 ---
     function generateWorkerRows(container, count, accountName, sectionId) {
@@ -121,7 +171,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const accountTasks = appData.accounts[accountName].tasks.filter(t => t.section === sectionId);
 
         for (let i = 1; i <= count; i++) {
-            // 【修改】直接使用數字作為 workerId
             const workerId = `${i}`;
             const existingTask = accountTasks.find(t => t.worker === workerId);
             const taskId = existingTask ? existingTask.id : `${accountName}-${sectionId}-${workerId}-${Date.now()}`;
@@ -202,6 +251,41 @@ document.addEventListener('DOMContentLoaded', () => {
         return Math.max(0, originalMinutes - reductionMinutes);
     }
 
+function handleTaskInputChange(row, accountName, sectionId, workerId, taskId, shouldSave = true) {
+    const taskInput = row.querySelector('.task-input').value.trim();
+    
+    const durationInput = row.querySelector('.duration-combined').value;
+    const parts = durationInput.split('-').map(p => p.trim());
+    const durationDays = parseInt(parts[0], 10) || 0;
+    const durationHours = parseInt(parts[1], 10) || 0;
+    const durationMinutes = parseInt(parts[2], 10) || 0;
+
+    const totalDurationInMinutes = (durationDays * 24 * 60) + (durationHours * 60) + durationMinutes;
+
+    const finalDurationInMinutes = applySpecialReductions(totalDurationInMinutes, accountName, sectionId, workerId);
+
+    const completionTime = (finalDurationInMinutes > 0) ? calculateCompletionTime(finalDurationInMinutes, '分鐘') : null;
+    const completionTimeDiv = row.querySelector('.completion-time');
+    completionTimeDiv.textContent = completionTime || 'N/A';
+
+    if (shouldSave) {
+        let task = appData.accounts[accountName].tasks.find(t => t.id === taskId);
+        if (!task) {
+            task = { id: taskId, section: sectionId, worker: workerId };
+            appData.accounts[accountName].tasks.push(task);
+        }
+        task.task = taskInput;
+        task.duration = { days: durationDays, hours: durationHours, minutes: durationMinutes };
+        task.completion = completionTime;
+        saveData(appData); // 保存到 localStorage
+    }
+
+    // 【新增】如果修改的是 home-village 任務，即時更新下拉選單
+    if (sectionId === 'home-village') {
+        updateWorkerApprenticeSelect(accountName);
+    }
+}
+
     // --- 處理任務輸入變更 ---
     function handleTaskInputChange(row, accountName, sectionId, workerId, taskId, shouldSave = true) {
         const taskInput = row.querySelector('.task-input').value.trim();
@@ -269,38 +353,41 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('go-to-scheduler-from-accounts').addEventListener('click', () => navigateTo('scheduler-page'));
     document.getElementById('go-to-accounts-from-scheduler').addEventListener('click', () => navigateTo('accounts-page'));
 
-    accountsPage.addEventListener('input', e => {
-        const accountName = e.target.dataset.account;
-        if (!accountName) return;
+accountsPage.addEventListener('input', e => {
+    const accountName = e.target.dataset.account;
+    if (!accountName) return;
 
-        const sectionId = e.target.dataset.section;
+    const sectionId = e.target.dataset.section;
 
-        if (e.target.classList.contains('worker-count')) {
-            const count = parseInt(e.target.value, 10) || 0;
-            const container = e.target.closest('.input-section').querySelector('.worker-rows-container');
-            if (!appData.accounts[accountName].workerCounts) appData.accounts[accountName].workerCounts = {};
-            appData.accounts[accountName].workerCounts[sectionId] = count;
-            saveData(appData);
-            generateWorkerRows(container, count, accountName, sectionId);
-        } else if (e.target.classList.contains('level-input')) {
-            if (!appData.accounts[accountName].levels) appData.accounts[accountName].levels = {};
-            appData.accounts[accountName].levels[sectionId] = e.target.value;
-            saveData(appData);
-        } else if (e.target.classList.contains('special-task-input')) {
-            const taskType = e.target.dataset.specialTask;
-            if (taskType === 'labAssistant') {
-                appData.accounts[accountName].specialTasks.labAssistant.level = e.target.value;
-            } else if (taskType === 'workerApprentice') {
-                appData.accounts[accountName].specialTasks.workerApprentice.level = e.target.value;
-            }
-            saveData(appData);
-            recalculateDependentTasks(accountName);
-        } else if (e.target.classList.contains('special-task-select')) {
-            appData.accounts[accountName].specialTasks.workerApprentice.targetWorker = e.target.value;
-            saveData(appData);
-            recalculateDependentTasks(accountName);
+    if (e.target.classList.contains('worker-count')) {
+        const count = parseInt(e.target.value, 10) || 0;
+        const container = e.target.closest('.input-section').querySelector('.worker-rows-container');
+        if (!appData.accounts[accountName].workerCounts) appData.accounts[accountName].workerCounts = {};
+        appData.accounts[accountName].workerCounts[sectionId] = count;
+        saveData(appData);
+        generateWorkerRows(container, count, accountName, sectionId);
+    } else if (e.target.classList.contains('level-input')) {
+        if (!appData.accounts[accountName].levels) appData.accounts[accountName].levels = {};
+        appData.accounts[accountName].levels[sectionId] = e.target.value;
+        saveData(appData);
+    } else if (e.target.classList.contains('special-task-input')) {
+        const taskType = e.target.dataset.specialTask;
+        if (taskType === 'labAssistant') {
+            appData.accounts[accountName].specialTasks.labAssistant.level = e.target.value;
+        } else if (taskType === 'workerApprentice') {
+            appData.accounts[accountName].specialTasks.workerApprentice.level = e.target.value;
         }
-    });
+        saveData(appData);
+        recalculateDependentTasks(accountName);
+    } else if (e.target.classList.contains('special-task-select')) {
+        // 【修改】原本的邏輯保持，新增即時更新選單
+        appData.accounts[accountName].specialTasks.workerApprentice.targetWorker = e.target.value;
+        saveData(appData);
+        recalculateDependentTasks(accountName);
+        // 【新增】選擇後即時重建選單（以防其他任務同時修改）
+        updateWorkerApprenticeSelect(accountName);
+    }
+});
 
     taskListContainer.addEventListener('click', (e) => {
         const deleteButton = e.target.closest('.btn-delete');
