@@ -201,8 +201,35 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 排程頁面刪除 (事件委派)
-    taskListContainer.addEventListener('click', (e) => handleDeleteTask(e, appData, ACCOUNTS_CONFIG));
+    // *** 主要修改處：處理排程頁面刪除的邏輯 ***
+    taskListContainer.addEventListener('click', (e) => {
+        const deleteButton = e.target.closest('.btn-delete');
+        if (deleteButton) {
+            const accountName = deleteButton.dataset.account;
+            const taskId = deleteButton.dataset.taskId;
+
+            const account = appData.accounts[accountName];
+            if (account) {
+                // 1. 找到對應任務並移除
+                account.tasks = account.tasks.filter(task => task.id !== taskId);
+                // 2. 儲存
+                saveData(appData);
+
+                // 3. 找到對應帳號的索引
+                const accountIndex = ACCOUNTS_CONFIG.findIndex(acc => acc.name === accountName);
+                if (accountIndex !== -1) {
+                    // 4. 更新當前索引並跳轉
+                    currentAccountIndex = accountIndex;
+                    navigateTo('accounts-page');
+                    
+                    // 5. 確保頁面內容和滾動位置正確更新
+                    renderAccountPages(ACCOUNTS_CONFIG, appData);
+                    updateSlider();
+                }
+            }
+        }
+    });
+
 
     // 滑動按鈕
     document.getElementById('next-account').addEventListener('click', () => {

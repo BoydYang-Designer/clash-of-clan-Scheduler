@@ -79,33 +79,5 @@ function renderScheduler(data) {
     });
 }
 
-
-/**
- * 處理刪除任務的點擊事件
- * @param {Event} e - 點擊事件
- * @param {Object} data - 全局資料
- * @param {Array} accountsConfig - 帳號設定
- */
-function handleDeleteTask(e, data, accountsConfig) {
-    const deleteButton = e.target.closest('.btn-delete');
-    if (deleteButton) {
-        const accountName = deleteButton.dataset.account;
-        const taskId = deleteButton.dataset.taskId;
-
-        const account = data.accounts[accountName];
-        if (account) {
-            // 找到對應任務並移除
-            account.tasks = account.tasks.filter(task => task.id !== taskId);
-
-            // 儲存並重新渲染
-            saveData(data);
-            renderScheduler(data);
-
-            // 同時更新帳號頁面的視圖
-            const sliderContainer = document.querySelector('.account-slider-container');
-            const currentScroll = sliderContainer.scrollLeft; // 記錄當前滾動位置
-            renderAccountPages(accountsConfig, data);
-            sliderContainer.scrollLeft = currentScroll; // 恢復滾動位置
-        }
-    }
-}
+// 由於刪除邏輯已移至 jsapp.js，此處不再需要此函數。
+// function handleDeleteTask(e, data, accountsConfig) { ... }
