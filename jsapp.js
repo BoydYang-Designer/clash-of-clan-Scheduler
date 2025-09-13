@@ -46,7 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
             slide.dataset.index = index;
             slide.dataset.accountName = acc.name;
 
-            // 確保資料結構完整
             const accountData = data.accounts[acc.name];
 
             let sectionsHtml = '';
@@ -70,11 +69,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             });
 
-            // 新增：特殊任務HTML
             const specialTasks = accountData.specialTasks;
             let workerOptions = '';
             for(let i = 1; i <= 5; i++) {
-                const workerId = `工人${i}`;
+                // 【修改】直接使用數字作為 workerId
+                const workerId = `${i}`;
                 workerOptions += `<option value="${workerId}" ${specialTasks.workerApprentice.targetWorker === workerId ? 'selected' : ''}>${workerId}</option>`;
             }
 
@@ -122,14 +121,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const accountTasks = appData.accounts[accountName].tasks.filter(t => t.section === sectionId);
 
         for (let i = 1; i <= count; i++) {
-            const workerId = `工人${i}`;
+            // 【修改】直接使用數字作為 workerId
+            const workerId = `${i}`;
             const existingTask = accountTasks.find(t => t.worker === workerId);
             const taskId = existingTask ? existingTask.id : `${accountName}-${sectionId}-${workerId}-${Date.now()}`;
-            const durationData = existingTask?.duration || {};
+            
+            let durationString = '';
+            if (existingTask && existingTask.duration) {
+                const d = existingTask.duration;
+                if (d.days > 0 || d.hours > 0 || d.minutes > 0) {
+                   durationString = `${d.days || 0}-${d.hours || 0}-${d.minutes || 0}`;
+                }
+            }
 
             const row = document.createElement('div');
             row.className = 'worker-row';
-            row.dataset.workerId = workerId; // 方便後續查找
+            row.dataset.workerId = workerId;
             row.dataset.sectionId = sectionId;
 
             row.innerHTML = `
@@ -138,21 +145,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     <input type="text" class="task-input" placeholder="任務名稱" value="${existingTask?.task || ''}">
                 </div>
                 <div class="duration-group">
-                    <input type="number" class="duration-days" placeholder="0" min="0" value="${durationData.days || ''}">
-                    <span class="unit-label">天</span>
-                    <input type="number" class="duration-hours" placeholder="0" min="0" max="23" value="${durationData.hours || ''}">
-                    <span class="unit-label">時</span>
-                    <input type="number" class="duration-minutes" placeholder="0" min="0" max="59" value="${durationData.minutes || ''}">
-                    <span class="unit-label">分</span>
+                    <input type="text" class="duration-combined" placeholder="天-時-分 (例: 5-12-30)" value="${durationString}">
                 </div>
                 <div class="completion-time" readonly></div>
             `;
             container.appendChild(row);
 
-            // 觸發一次計算以顯示初始時間
             handleTaskInputChange(row, accountName, sectionId, workerId, taskId, false);
 
-            const inputs = row.querySelectorAll('.task-input, .duration-group input');
+            const inputs = row.querySelectorAll('.task-input, .duration-combined');
             inputs.forEach(input => {
                 input.addEventListener('input', () => handleTaskInputChange(row, accountName, sectionId, workerId, taskId, true));
             });
@@ -177,29 +178,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- 新功能：應用特殊任務的時間減免 ---
+    // --- 應用特殊任務的時間減免 ---
     function applySpecialReductions(originalMinutes, accountName, sectionId, workerId) {
         if (originalMinutes <= 0) return originalMinutes;
 
         const specialTasks = appData.accounts[accountName].specialTasks;
         let reductionMinutes = 0;
 
-        // 計算減免基數 (天數)
         const originalDays = originalMinutes / (24 * 60);
         const baseDays = Math.ceil(originalDays);
 
-        // 1. 實驗助手邏輯
         const labAssistantLevel = parseInt(specialTasks.labAssistant.level, 10);
         if (sectionId === 'laboratory' && labAssistantLevel > 0) {
-            // 您的公式：基數 * 等級 * 小時
             reductionMinutes += baseDays * labAssistantLevel * 60;
         }
 
-        // 2. 工人學徒邏輯
         const apprenticeLevel = parseInt(specialTasks.workerApprentice.level, 10);
         const targetWorker = specialTasks.workerApprentice.targetWorker;
         if (sectionId === 'home-village' && workerId === targetWorker && apprenticeLevel > 0) {
-            // 您的公式：基數 * 等級 * 小時
             reductionMinutes += baseDays * apprenticeLevel * 60;
         }
 
@@ -209,13 +205,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 處理任務輸入變更 ---
     function handleTaskInputChange(row, accountName, sectionId, workerId, taskId, shouldSave = true) {
         const taskInput = row.querySelector('.task-input').value.trim();
-        const durationDays = parseInt(row.querySelector('.duration-days').value, 10) || 0;
-        const durationHours = parseInt(row.querySelector('.duration-hours').value, 10) || 0;
-        const durationMinutes = parseInt(row.querySelector('.duration-minutes').value, 10) || 0;
+        
+        const durationInput = row.querySelector('.duration-combined').value;
+        const parts = durationInput.split('-').map(p => p.trim());
+        const durationDays = parseInt(parts[0], 10) || 0;
+        const durationHours = parseInt(parts[1], 10) || 0;
+        const durationMinutes = parseInt(parts[2], 10) || 0;
 
         const totalDurationInMinutes = (durationDays * 24 * 60) + (durationHours * 60) + durationMinutes;
 
-        // 應用特殊減免
         const finalDurationInMinutes = applySpecialReductions(totalDurationInMinutes, accountName, sectionId, workerId);
 
         const completionTime = (finalDurationInMinutes > 0) ? calculateCompletionTime(finalDurationInMinutes, '分鐘') : null;
@@ -235,12 +233,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // --- 新功能：當特殊任務等級改變時，重新計算相關任務時間 ---
+    // --- 當特殊任務等級改變時，重新計算相關任務時間 ---
     function recalculateDependentTasks(accountName) {
         const slide = document.querySelector(`.account-page-slide[data-account-name="${accountName}"]`);
         if (!slide) return;
 
-        // 1. 重新計算實驗室任務
         const labRows = slide.querySelectorAll(`.worker-row[data-section-id="laboratory"]`);
         labRows.forEach(row => {
             const workerId = row.dataset.workerId;
@@ -250,7 +247,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // 2. 重新計算被指定的工人任務
         const targetWorker = appData.accounts[accountName].specialTasks.workerApprentice.targetWorker;
         const apprenticeRow = slide.querySelector(`.worker-row[data-section-id="home-village"][data-worker-id="${targetWorker}"]`);
         if (apprenticeRow) {
@@ -306,8 +302,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-
-    
     taskListContainer.addEventListener('click', (e) => {
         const deleteButton = e.target.closest('.btn-delete');
         if (deleteButton) {

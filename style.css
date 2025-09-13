@@ -134,7 +134,7 @@ body {
     flex: 0 0 100%;
     width: 100%;
     scroll-snap-align: start; /* 滾動時停靠在開始位置 */
-    padding: 20px; /* 頁面內部邊距 */
+    padding: 20px 20px 120px 20px; /* 增加底部 padding，防止被 footer 遮擋 */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -156,7 +156,7 @@ body {
 
 .account-name {
     margin-top: 15px;
-    font-size: 2.5rem; /* 縮小字級 (原 4rem * 0.8) */
+    font-size: 2.5rem;
 }
 
 .account-body {
@@ -167,7 +167,8 @@ body {
     background-color: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: 25px;
-    padding: 30px;
+    /* 【修改】減少左右 padding，增加垂直 padding */
+    padding: 25px 20px;
     margin-bottom: 30px;
     box-shadow: var(--shadow-sm);
 }
@@ -181,7 +182,7 @@ body {
 }
 
 .section-title {
-    font-size: 1.5rem; /* 縮小字級 (原 3.2rem * 0.8) */
+    font-size: 1.5rem;
     font-weight: 700;
 }
 
@@ -196,13 +197,13 @@ body {
     border: 1px solid var(--color-border);
     border-radius: 8px;
     text-align: center;
-    font-size: 1.5rem; /* 維持不變 */
+    font-size: 1.5rem;
 }
 
 .level-unit {
     margin-left: 12px;
     color: var(--color-secondary);
-    font-size: 1.76rem; /* 縮小字級 (原 2.2rem * 0.8) */
+    font-size: 1.76rem;
 }
 
 .worker-count-input {
@@ -216,7 +217,7 @@ body {
 .worker-count-input label {
     font-weight: 700;
     margin-right: 18px;
-    font-size: 1.5rem; /* 縮小字級 (原 2.6rem * 0.8) */
+    font-size: 1.5rem;
 }
 
 .worker-count {
@@ -225,14 +226,14 @@ body {
     border: 1px solid var(--color-border);
     border-radius: 8px;
     text-align: center;
-    font-size: 1.5rem; /* 維持不變 */
+    font-size: 1.5rem;
 }
 
 .worker-row {
     display: flex;
-    flex-direction: column; /* 改為垂直排列 */
-    align-items: stretch; /* 讓子元素撐滿寬度 */
-    gap: 15px; /* 調整垂直間距 */
+    flex-direction: column;
+    align-items: stretch;
+    gap: 15px;
     padding-bottom: 20px;
     border-bottom: 1px solid var(--color-border);
     margin-bottom: 20px;
@@ -247,35 +248,35 @@ body {
     padding: 15px;
     border: 1px solid var(--color-border);
     border-radius: 15px;
-    font-size: 1.5rem; /* 維持不變 */
+    font-size: 1.5rem;
 }
 
-/* 新增時長輸入框群組的樣式 */
 .duration-group {
-    display: flex;
-    gap: 8px; /* 輸入框之間的間距 */
+    padding-left: 5px;
 }
 
-.duration-group input {
-    width: 70px; /* 縮小輸入框寬度 */
-    text-align: center;
+.duration-group .duration-combined {
+    width: 100%; /* 讓合併後的輸入框填滿寬度 */
+    text-align: left;
 }
 
 .worker-label {
     font-weight: 700;
     color: var(--color-primary-dark);
-    font-size: 1.5rem; /* 縮小字級 (原 2.4rem * 0.8) */
+    font-size: 1.5rem;
+    /* 【新增】給標籤一個固定寬度，讓後方輸入框對齊 */
+    min-width: 20px;
+    text-align: center;
 }
 
 .completion-time {
     font-size: 1.6rem;
     color: var(--color-primary-dark);
     font-weight: 700;
-    text-align: left; /* 改為靠左對齊 */
-    padding-left: 5px; /* 增加一點左邊距 */
+    text-align: left;
+    padding-left: 5px;
 }
 
-/* 使用 ::before 偽元素來新增標題文字 */
 .completion-time::before {
     content: "預計完成：";
     font-weight: 400;
@@ -283,44 +284,47 @@ body {
     margin-right: 8px;
 }
 
-.slider-nav {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 10px 0;
-    position: absolute;
-    bottom: 50px;
+.page-footer {
+    padding: 10px 15px; 
+    text-align: center;
+    background-color: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+    position: absolute; 
+    bottom: 0;
     left: 0;
     right: 0;
-    background-color: var(--color-surface);
-    box-shadow: 0 -2px 5px rgba(0,0,0,0.05);
+    z-index: 10;
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+}
+
+.footer-nav-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .slider-arrow {
     background: none;
     border: none;
-    font-size: 2.5rem; /* 字級加大 */
+    font-size: 2.5rem;
     color: var(--color-primary);
     cursor: pointer;
-    padding: 0 20px;
+    padding: 0 15px;
 }
 
 #account-indicator {
-    font-size: 1.3rem; /* 字級加大 */
+    font-size: 1.3rem;
     color: var(--color-secondary);
 }
 
-.page-footer {
-    padding: 15px;
-    text-align: center;
-    background-color: var(--color-surface);
-    border-top: 1px solid var(--color-border);
-    position: sticky;
-    bottom: 0;
-    z-index: 10;
+#accounts-page .page-footer .btn {
+    width: auto; 
+    flex-shrink: 0; 
 }
 
-.page-footer .btn {
+#scheduler-page .page-footer .btn {
     width: 100%;
 }
 
@@ -336,7 +340,7 @@ body {
 }
 
 #scheduler-page .page-header h2 {
-    font-size: 2rem; /* 縮小字級 (原 4.5rem * 0.8) */
+    font-size: 2rem;
 }
 
 .task-list-container {
@@ -348,8 +352,8 @@ body {
 
 .task-item {
     display: flex;
-    align-items: center; /* 垂直居中對齊 */
-    gap: 25px; /* 增加頭像與內容的間距 */
+    align-items: center;
+    gap: 25px;
     background-color: var(--color-surface);
     padding: 25px;
     border-radius: 12px;
@@ -357,73 +361,72 @@ body {
 }
 
 .task-avatar {
-    width: 100px; /* 大幅加大 */
-    height: 100px; /* 大幅加大 */
+    width: 100px;
+    height: 100px;
     object-fit: cover;
-    flex-shrink: 0; /* 防止頭像被壓縮 */
-    border-radius: 50%; /* 補上圓角 */
+    flex-shrink: 0;
+    border-radius: 50%;
 }
 
 .task-info {
     display: flex;
     flex-direction: column;
-    gap: 8px; /* 增加文字間距 */
-    flex-grow: 1; /* 佔據剩餘空間 */
+    gap: 8px;
+    flex-grow: 1;
 }
 
 .task-account-name {
-    font-size: 1.5rem; /* 縮小字級 (原 2.75rem * 0.8) */
+    font-size: 1.5rem;
     color: var(--color-secondary);
     font-style: italic;
 }
 
 .task-section-name {
-    font-size: 1.2rem; /* 縮小字級 (原 2.25rem * 0.8) */
+    font-size: 1.2rem;
     font-weight: 700;
     color: var(--color-primary-dark);
     background-color: #e9ecef;
     padding: 5px 12px;
     border-radius: 15px;
-    align-self: flex-start; /* 讓標籤寬度自適應內容 */
+    align-self: flex-start;
 }
 
 .task-name {
     font-weight: 700;
-    font-size: 1.5rem; /* 縮小字級 (原 3.25rem * 0.8) */
+    font-size: 1.5rem;
 }
 
 .task-completion {
     color: var(--color-text-light);
-    font-size: 2.0rem; /* 縮小字級 (原 2.5rem * 0.8) */
+    font-size: 2.0rem;
 }
 
 .btn-delete {
     background-color: transparent;
-    border: 5px solid var(--color-yellow-delete); /* 改為中空圓圈 */
-    color: transparent; /* 隱藏文字 */
+    border: 5px solid var(--color-yellow-delete);
+    color: transparent;
     border-radius: 50%;
-    width: 50px; /* 稍稍加大 */
-    height: 50px; /* 稍稍加大 */
-    font-size: 0; /* 隱藏 'x' */
+    width: 50px;
+    height: 50px;
+    font-size: 0;
     cursor: pointer;
     transition: background-color 0.2s, border-color 0.2s;
-    flex-shrink: 0; /* 防止按鈕被壓縮 */
+    flex-shrink: 0;
 }
 
 .btn-delete:hover {
-    background-color: rgba(248, 200, 117, 0.2); /* hover 時輕微背景色 */
+    background-color: rgba(248, 200, 117, 0.2);
     border-color: var(--color-yellow-delete-dark);
 }
 
-
 #no-tasks-message {
     text-align: center;
-    font-size: 3rem; /* 大幅加大 */
+    font-size: 3rem;
     padding: 60px 20px;
     color: var(--color-secondary);
 }
 
-/* --- 新增：特殊任務樣式 --- */
+/* --- 特殊任務樣式 --- */
 .special-tasks-container .section-title {
     margin-bottom: 20px;
 }
@@ -446,46 +449,22 @@ body {
     width: 100px;
 }
 
-/* --- 響應式設計 --- */
-@media (max-width: 768px) {
-.duration-group {
-    justify-content: flex-start; /* 靠左對齊，防止右邊溢出 */
-    padding-left: 0; /* 移除左 padding，如果有 */
-}
-
-    .duration-group input {
-        width: 100%; /* 在手機上全寬，讓每個輸入獨佔一行或更多空間，減少偏移 */
-        min-width: 80px; /* 最小寬度，防止太窄 */
-    }
-
-    .worker-row {
-        padding: 20px 0; /* 增加垂直 padding，給鍵盤空間 */
-    }
-
-    .account-page-slide {
-        padding-bottom: 150px; /* 增加底部 padding，防止鍵盤推擠最後輸入格子導致偏移 */
-    }
-}
-
-/* --- 新增：特殊任務垂直排版 --- */
 .special-task-block {
     display: flex;
-    flex-direction: column; /* 讓內容垂直排列 */
-    align-items: flex-start; /* 靠左對齊 */
-    margin-bottom: 25px; /* 與下一個項目間距 */
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 25px;
 }
 .special-task-block label {
     font-size: 1.5rem;
     font-weight: 700;
-    margin-bottom: 10px; /* 標題與輸入框間距 */
+    margin-bottom: 10px;
 }
-/* 讓指定工人的下拉選單有自己的樣式 */
 .apprentice-target-worker {
-    width: 200px; /* 給予一個合適的寬度 */
-    margin-top: 10px; /* 與上方的等級輸入框產生間距 */
+    width: 200px;
+    margin-top: 10px;
 }
 
-/* --- 新增：工人任務垂直排版樣式 --- */
 .worker-task-line {
     display: flex;
     align-items: center;
@@ -493,17 +472,5 @@ body {
 }
 
 .worker-task-line .task-input {
-    flex-grow: 1; /* 讓任務名稱輸入框填滿剩餘空間 */
+    flex-grow: 1;
 }
-
-.duration-group {
-    padding-left: 5px; /* 讓時長輸入區塊稍微內縮，對齊下方完成時間 */
-}
-
-
-.duration-group .unit-label {
-    margin: 0 8px 0 3px;
-    color: var(--color-secondary);
-    font-size: 1.3rem;
-}
-

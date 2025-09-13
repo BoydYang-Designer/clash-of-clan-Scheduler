@@ -31,7 +31,8 @@ function loadData(accountsConfig) {
         if (!parsedData.accounts[acc.name].specialTasks) {
             parsedData.accounts[acc.name].specialTasks = {
                 labAssistant: { level: '' },
-                workerApprentice: { level: '', targetWorker: '工人1' }
+                // 【修改】將預設目標工人改為數字
+                workerApprentice: { level: '', targetWorker: '1' }
             };
         }
     });
@@ -62,8 +63,6 @@ function calculateCompletionTime(duration, unit) {
         return null;
     }
 
-    // *** 主要修改處 ***
-    // 直接使用 new Date() 獲取使用者當前的即時時間 (台灣時間) 作為起點
     const now = new Date();
     let futureDate = new Date(now);
 
@@ -72,16 +71,13 @@ function calculateCompletionTime(duration, unit) {
             futureDate.setMinutes(now.getMinutes() + duration);
             break;
         case '小時':
-            // 將小數小時轉換為分鐘
             futureDate.setMinutes(now.getMinutes() + duration * 60);
             break;
         case '天':
-            // 將小數天轉換為小時
             futureDate.setHours(now.getHours() + duration * 24);
             break;
     }
 
-    // 格式化輸出: MM/DD HH:MM (移除年份)
     const month = String(futureDate.getMonth() + 1).padStart(2, '0');
     const day = String(futureDate.getDate()).padStart(2, '0');
     const hours = String(futureDate.getHours()).padStart(2, '0');
