@@ -10,10 +10,10 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     const SECTIONS_CONFIG = [
-        { id: 'home-village', title: '家鄉大本營', defaultLevel: '5', unit: '本' },
-        { id: 'builder-base', title: '建築大師基地', defaultLevel: '2', unit: '本' },
+        { id: 'home-village', title: '大本營', defaultLevel: '5', unit: '本' },
+        { id: 'builder-base', title: '建築大師', defaultLevel: '2', unit: '本' },
         { id: 'laboratory', title: '實驗室', defaultLevel: '5', unit: '級' },
-        { id: 'star-laboratory', title: '星空實驗室', defaultLevel: '5', unit: '級' },
+        { id: 'star-laboratory', title: '星空實驗', defaultLevel: '5', unit: '級' },
         { id: 'pet-house', title: '戰寵小屋', defaultLevel: '1', unit: '級' } // 新增戰寵小屋
     ];
 
