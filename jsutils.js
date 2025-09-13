@@ -8,32 +8,35 @@ const STORAGE_KEY = 'clashSchedulerData';
  */
 function loadData(accountsConfig) {
     const data = localStorage.getItem(STORAGE_KEY);
-    if (data) {
-        const parsedData = JSON.parse(data);
-        // 確保所有帳號都有 levels 和 workerCounts 結構
-        accountsConfig.forEach(acc => {
-            if (parsedData.accounts[acc.name]) {
-                if (!parsedData.accounts[acc.name].levels) {
-                    parsedData.accounts[acc.name].levels = {};
-                }
-                if (!parsedData.accounts[acc.name].workerCounts) {
-                    parsedData.accounts[acc.name].workerCounts = {};
-                }
-            }
-        });
-        return parsedData;
-    }
-    // 如果沒有資料，則建立初始結構
-    const initialData = { accounts: {} };
+    let parsedData = data ? JSON.parse(data) : { accounts: {} };
+
+    // 確保所有帳號都存在且擁有完整的資料結構
     accountsConfig.forEach(acc => {
-        initialData.accounts[acc.name] = {
-            avatar: acc.avatar,
-            tasks: [],
-            levels: {}, // 初始化 levels 物件
-            workerCounts: {} // 初始化 workerCounts 物件
-        };
+        if (!parsedData.accounts[acc.name]) {
+            parsedData.accounts[acc.name] = {
+                avatar: acc.avatar,
+                tasks: [],
+                levels: {},
+                workerCounts: {}
+            };
+        }
+        
+        // 確保 levels, workerCounts, specialTasks 物件存在
+        if (!parsedData.accounts[acc.name].levels) {
+            parsedData.accounts[acc.name].levels = {};
+        }
+        if (!parsedData.accounts[acc.name].workerCounts) {
+            parsedData.accounts[acc.name].workerCounts = {};
+        }
+        if (!parsedData.accounts[acc.name].specialTasks) {
+            parsedData.accounts[acc.name].specialTasks = {
+                labAssistant: { level: '' },
+                workerApprentice: { level: '', targetWorker: '工人1' }
+            };
+        }
     });
-    return initialData;
+    
+    return parsedData;
 }
 
 
