@@ -16,36 +16,37 @@
     <main id="app-container">
 
         <section id="home-page" class="page active">
-    <div class="home-content">
-        <h1 class="main-title">Clash Scheduler</h1>
-        <div class="home-nav">
-            <button id="go-to-scheduler-from-home" class="btn btn-primary">查看總排程</button>
-            <button id="go-to-accounts-from-home" class="btn btn-secondary">編輯帳號任務</button>
-            <button id="export-json-btn" class="btn btn-secondary">匯出JSON</button>
-        </div>
-    </div>
-</section>
+            <div class="home-content">
+                <h1 class="main-title">Clash Scheduler</h1>
+                <div class="home-nav">
+                    <button id="go-to-scheduler-from-home" class="btn btn-primary">查看總排程</button>
+                    <button id="go-to-accounts-from-home" class="btn btn-secondary">編輯帳號任務</button>
+                    <button id="export-json-btn" class="btn btn-secondary">匯出JSON</button>
+                </div>
+            </div>
+        </section>
 
        <section id="accounts-page" class="page">
-            <header class="page-header">
-                </header>
             <div class="account-slider-container">
             </div>
-            <div class="top-controls">
+            <footer class="slider-footer">
                 <div class="footer-nav-controls">
                     <button id="prev-account" class="slider-arrow">‹</button>
                     <span id="account-indicator">1 / 5</span>
                     <button id="next-account" class="slider-arrow">›</button>
                 </div>
-                </div>
+            </footer>
         </section>
 
         <section id="scheduler-page" class="page">
             <header class="page-header">
-                <button id="go-to-accounts-from-scheduler" class="btn btn-primary">返回帳號任務</button>
+                <h2>今日總排程</h2>
             </header>
             <div id="task-list" class="task-list-container">
             </div>
+            <footer class="page-footer">
+                <button id="go-to-accounts-from-scheduler" class="btn btn-primary">返回帳號任務</button>
+            </footer>
         </section>
 
     </main>

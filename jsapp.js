@@ -37,8 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 動態生成帳號頁面 ---
-// --- 動態生成帳號頁面 ---（僅顯示修改部分）
+// --- 動態生成帳號頁面 ---
 function renderAccountPages(configs, data) {
     accountSlider.innerHTML = '';
     configs.forEach((acc, index) => {
@@ -49,23 +48,23 @@ function renderAccountPages(configs, data) {
 
         const accountData = data.accounts[acc.name];
 
-        // 【修改】先過濾出 home-village 的任務，來獲取每個工人的任務名稱
         const homeVillageTasks = accountData.tasks.filter(t => t.section === 'home-village');
-        const taskMap = {}; // 建立工人 ID 到任務名稱的映射
+        const taskMap = {}; 
         homeVillageTasks.forEach(task => {
             taskMap[task.worker] = task.task || '(無任務)';
         });
-
-        // 【修改】生成 workerOptions 時，加入任務名稱
+        
+        // 【修改】根據大本營的工人數動態決定選項數量
+        const homeVillageWorkerCount = accountData.workerCounts['home-village'] || 0;
         const specialTasks = accountData.specialTasks;
         let workerOptions = '';
-        for(let i = 1; i <= 5; i++) {
+        // 【修改】迴圈上限改為 homeVillageWorkerCount
+        for(let i = 1; i <= homeVillageWorkerCount; i++) {
             const workerId = `${i}`;
-            const taskName = taskMap[workerId] || '(無任務)'; // 如果無任務，顯示預設文字
+            const taskName = taskMap[workerId] || '(無任務)';
             workerOptions += `<option value="${workerId}" ${specialTasks.workerApprentice.targetWorker === workerId ? 'selected' : ''}>${workerId} - ${taskName}</option>`;
         }
 
-        // 【新增】檢查特殊任務的收合狀態
         const specialCollapsed = accountData.collapsedSections['special-tasks'] || true;
 
         const specialTasksHtml = `
@@ -74,7 +73,7 @@ function renderAccountPages(configs, data) {
                     <div class="section-header">
                         <h3 class="section-title">特殊任務</h3>
                     </div>
-                    <div class="input-section-body">  <!-- 【新增】包裝內容以便 CSS 隱藏 -->
+                    <div class="input-section-body">
                         <div class="special-task-block">
                             <label>工人學徒等級:</label>
                             <input type="number" class="special-task-input" data-account="${acc.name}" data-special-task="workerApprentice" value="${specialTasks.workerApprentice.level || ''}">
@@ -92,20 +91,17 @@ function renderAccountPages(configs, data) {
             </div>
         `;
         
-        // 【修改】在迴圈中插入特殊任務區塊
         let sectionsHtml = '';
         SECTIONS_CONFIG.forEach(sec => {
             const savedLevel = accountData.levels[sec.id] || sec.defaultLevel;
-            // 【新增】檢查該區塊的收合狀態
             const isCollapsed = accountData.collapsedSections[sec.id] || true;
-            // 產生一般區塊的 HTML
             sectionsHtml += `
                 <div class="input-section ${isCollapsed ? 'collapsed' : ''}" data-section-id="${sec.id}" data-account="${acc.name}">
                     <div class="section-header">
                         <h3 class="section-title">${sec.title}</h3>
                     </div>
-                    <div class="input-section-body">  <!-- 【新增】包裝內容以便 CSS 隱藏 -->
-                        <div class="section-header-level">  <!-- 【調整】將 level-input 移到這裡 -->
+                    <div class="input-section-body">
+                        <div class="section-header-level">
                             <div class="level-input-container">
                                 <input type="text" class="level-input" value="${savedLevel}" data-account="${acc.name}" data-section="${sec.id}">
                                 <span class="level-unit">${sec.unit}</span>
@@ -120,7 +116,6 @@ function renderAccountPages(configs, data) {
                 </div>
             `;
 
-            // 如果當前區塊是實驗室，就在它後面插入特殊任務區塊
             if (sec.id === 'laboratory') {
                 sectionsHtml += specialTasksHtml;
             }
@@ -132,10 +127,10 @@ function renderAccountPages(configs, data) {
                 <h2 class="account-name">${acc.name}</h2>
             </div>
             <div class="account-body">
-                <div class="scheduler-button-container">
-                    <button class="btn btn-primary go-to-scheduler-btn">查看總排程</button>
-                </div>
                 ${sectionsHtml}
+            </div>
+            <div class="account-page-footer">
+                <button class="btn btn-primary go-to-scheduler-from-accounts">查看總排程</button>
             </div>
         `;
         accountSlider.appendChild(slide);
@@ -148,39 +143,32 @@ function updateWorkerApprenticeSelect(accountName) {
     const select = document.querySelector(`.account-page-slide[data-account-name="${accountName}"] .apprentice-target-worker`);
     if (!select) return;
 
-    // 重新獲取 home-village 任務來建立 taskMap
     const homeVillageTasks = appData.accounts[accountName].tasks.filter(t => t.section === 'home-village');
     const taskMap = {};
     homeVillageTasks.forEach(task => {
         taskMap[task.worker] = task.task || '(無任務)';
     });
 
-    // 重建選項
+    // 【修改】根據大本營的工人數動態決定選項數量
+    const homeVillageWorkerCount = appData.accounts[accountName].workerCounts['home-village'] || 0;
     let workerOptions = '';
-    for (let i = 1; i <= 5; i++) {  // 假設最多 5 個工人，依據您的 workerCounts 調整
+    // 【修改】迴圈上限改為 homeVillageWorkerCount
+    for (let i = 1; i <= homeVillageWorkerCount; i++) {
         const workerId = `${i}`;
         const taskName = taskMap[workerId] || '(無任務)';
         const selected = appData.accounts[accountName].specialTasks.workerApprentice.targetWorker === workerId ? 'selected' : '';
         workerOptions += `<option value="${workerId}" ${selected}>${workerId} - ${taskName}</option>`;
     }
 
-    // 更新 select
     select.innerHTML = workerOptions;
 }
 
-// --- 修改：accountsPage 事件監聽（在現有的 'input' 事件後，新增 'click' 事件處理收合） ---
 accountsPage.addEventListener('input', e => {
     // ... 原有 input 邏輯保持不變 ...
 });
 
 accountsPage.addEventListener('click', e => {
-    // 新增：處理前往排程頁的按鈕
-    if (e.target.closest('.go-to-scheduler-btn')) {
-        navigateTo('scheduler-page');
-        return; // 點擊按鈕後，不需要執行下面的收合邏輯
-    }
-
-    // 原有的：處理區塊收合的邏輯
+    // 【修改】移除 .go-to-scheduler-btn 的事件監聽，因為按鈕已移到頁尾
     if (e.target.closest('.section-title')) {
         const section = e.target.closest('.input-section');
         if (section) {
@@ -188,23 +176,20 @@ accountsPage.addEventListener('click', e => {
             const sectionId = section.dataset.sectionId;
             const isCurrentlyCollapsed = section.classList.contains('collapsed');
             section.classList.toggle('collapsed');
-            // 更新資料結構並儲存
             if (!appData.accounts[accountName].collapsedSections) {
                 appData.accounts[accountName].collapsedSections = {};
             }
             appData.accounts[accountName].collapsedSections[sectionId] = !isCurrentlyCollapsed;
             saveData(appData);
-
-            // 如果展開的是 special-tasks，則即時更新工人學徒下拉選單
-            if (sectionId === 'special-tasks' && isCurrentlyCollapsed) {
-                updateWorkerApprenticeSelect(accountName);
+            
+            // 【修改】當大本營工人數改變時，也要更新工人學徒選單
+            if (sectionId === 'home-village' || (sectionId === 'special-tasks' && isCurrentlyCollapsed)) {
+                 updateWorkerApprenticeSelect(accountName);
             }
         }
     }
 });
-
-    // --- 動態生成工人輸入行 ---
-function generateWorkerRows(container, count, accountName, sectionId) {
+    function generateWorkerRows(container, count, accountName, sectionId) {
     container.innerHTML = '';
     const accountTasks = appData.accounts[accountName].tasks.filter(t => t.section === sectionId);
 
@@ -238,8 +223,6 @@ function generateWorkerRows(container, count, accountName, sectionId) {
         `;
         container.appendChild(row);
 
-        // 在生成時，立即觸發一次更新，但不儲存
-        // 這將使用儲存的 entryTimestamp 來計算並顯示完成時間
         handleTaskInputChange(row, accountName, sectionId, workerId, taskId, false);
 
         const inputs = row.querySelectorAll('.task-input, .duration-combined');
@@ -249,7 +232,6 @@ function generateWorkerRows(container, count, accountName, sectionId) {
     }
 }
     
-    // --- 從數據恢復輸入狀態 ---
     function restoreInputsFromData(data) {
         Object.keys(data.accounts).forEach(accountName => {
             const account = data.accounts[accountName];
@@ -267,7 +249,6 @@ function generateWorkerRows(container, count, accountName, sectionId) {
         });
     }
 
-    // --- 應用特殊任務的時間減免 ---
     function applySpecialReductions(originalMinutes, accountName, sectionId, workerId) {
         if (originalMinutes <= 0) return originalMinutes;
 
@@ -296,65 +277,52 @@ function generateWorkerRows(container, count, accountName, sectionId) {
     const durationInput = row.querySelector('.duration-combined').value;
     const completionTimeDiv = row.querySelector('.completion-time');
 
-    // --- 1. 取得現有任務資料 ---
     let task = appData.accounts[accountName].tasks.find(t => t.id === taskId);
 
-    // --- 2. 解析使用者輸入的時長 ---
     const parts = durationInput.split('-').map(p => p.trim());
     const durationDays = parseInt(parts[0], 10) || 0;
     const durationHours = parseInt(parts[1], 10) || 0;
     const durationMinutes = parseInt(parts[2], 10) || 0;
     const totalDurationInMinutes = (durationDays * 24 * 60) + (durationHours * 60) + durationMinutes;
 
-    // --- 3. 核心邏輯：決定 entryTimestamp ---
     let entryTimestamp = task?.entryTimestamp || null;
     const hasNewDuration = totalDurationInMinutes > 0;
     const oldDurationInMinutes = task?.duration ? (task.duration.days * 1440) + (task.duration.hours * 60) + task.duration.minutes : 0;
 
-    // 只有在「儲存模式」下，且「時長發生變化」時，才更新時間戳
     if (shouldSave && hasNewDuration && totalDurationInMinutes !== oldDurationInMinutes) {
-        entryTimestamp = Date.now(); // 設定為當前時間戳
+        entryTimestamp = Date.now();
     }
     
-    // 如果時長被清空，則時間戳也應清空
     if (!hasNewDuration) {
         entryTimestamp = null;
     }
 
-    // --- 4. 計算最終時間 (含特殊任務減免) ---
     const finalDurationInMinutes = applySpecialReductions(totalDurationInMinutes, accountName, sectionId, workerId);
     
-    // --- 5. 計算並顯示完成時間 ---
-    // 【修改】這裡的 calculateCompletionTime 函式需要調整為接收兩個參數
     const completionTime = calculateCompletionTime(entryTimestamp, finalDurationInMinutes);
     completionTimeDiv.textContent = completionTime || 'N/A';
 
-    // --- 6. 儲存資料 ---
     if (shouldSave) {
-        // 如果任務不存在，則在有內容時建立它
         if (!task) {
             if (taskInput || hasNewDuration) {
                 task = { id: taskId, section: sectionId, worker: workerId };
                 appData.accounts[accountName].tasks.push(task);
             } else {
-                return; // 沒有任何內容，不儲存
+                return;
             }
         }
 
-        // 更新任務的所有屬性
         task.task = taskInput;
         task.duration = { days: durationDays, hours: durationHours, minutes: durationMinutes };
-        task.entryTimestamp = entryTimestamp; // 【新增】儲存時間戳
+        task.entryTimestamp = entryTimestamp;
         task.completion = completionTime;
         
-        // 如果任務內容被完全清空，則從陣列中移除
         if (!task.task && !hasNewDuration) {
             appData.accounts[accountName].tasks = appData.accounts[accountName].tasks.filter(t => t.id !== taskId);
         }
 
-        saveData(appData); // 保存到 localStorage
+        saveData(appData);
         
-        // 【新增】如果修改的是 home-village 任務，即時更新下拉選單
         if (sectionId === 'home-village') {
             updateWorkerApprenticeSelect(accountName);
         }
@@ -366,12 +334,9 @@ function calculateCompletionTime(entryTimestamp, finalDurationInMinutes) {
         return 'N/A';
     }
 
-    // 創建一個 Date 物件，從 entryTimestamp 開始
     const completionDate = new Date(entryTimestamp);
-    // 增加總時長 (以毫秒為單位)
     completionDate.setMinutes(completionDate.getMinutes() + finalDurationInMinutes);
 
-    // 格式化完成時間
     const year = completionDate.getFullYear();
     const month = (completionDate.getMonth() + 1).toString().padStart(2, '0');
     const day = completionDate.getDate().toString().padStart(2, '0');
@@ -381,7 +346,6 @@ function calculateCompletionTime(entryTimestamp, finalDurationInMinutes) {
     return `${year}/${month}/${day} ${hours}:${minutes}`;
 }
     
-    // --- 當特殊任務等級改變時，重新計算相關任務時間 ---
     function recalculateDependentTasks(accountName) {
         const slide = document.querySelector(`.account-page-slide[data-account-name="${accountName}"]`);
         if (!slide) return;
@@ -405,42 +369,32 @@ function calculateCompletionTime(entryTimestamp, finalDurationInMinutes) {
         }
     }
 
-    // --- 滑動頁面邏輯 ---
     function updateSlider() {
         accountSlider.scrollLeft = currentAccountIndex * accountSlider.clientWidth;
         document.getElementById('account-indicator').textContent = `${currentAccountIndex + 1} / ${ACCOUNTS_CONFIG.length}`;
     }
 
    // --- 事件監聽 ---
-    // 【新增】加上首頁按鈕的事件監聽
     document.getElementById('go-to-scheduler-from-home').addEventListener('click', () => navigateTo('scheduler-page'));
     document.getElementById('go-to-accounts-from-home').addEventListener('click', () => navigateTo('accounts-page'));
+    
+    document.body.addEventListener('click', e => {
+        if (e.target.classList.contains('go-to-scheduler-from-accounts')) {
+            navigateTo('scheduler-page');
+        }
+    });
 
     document.getElementById('go-to-accounts-from-scheduler').addEventListener('click', () => navigateTo('accounts-page'));
-      // 【新增】匯出 JSON 按鈕的事件監聽
+      
     document.getElementById('export-json-btn').addEventListener('click', () => {
-        // 1. 將目前的 appData 物件轉換為格式化的 JSON 字串
-        //    使用 null, 2 參數可以讓輸出的 JSON 檔案有縮排，更易於閱讀
         const jsonString = JSON.stringify(appData, null, 2);
-
-        // 2. 建立一個 Blob 物件，類型為 application/json
         const blob = new Blob([jsonString], { type: 'application/json' });
-
-        // 3. 建立一個暫時的 URL 指向這個 Blob 物件
         const url = URL.createObjectURL(blob);
-
-        // 4. 建立一個隱藏的 <a> 連結元素
         const a = document.createElement('a');
         a.href = url;
-        
-        // 5. 設定下載的檔案名稱，包含日期以方便識別
-        const today = new Date().toISOString().slice(0, 10); // 格式為 YYYY-MM-DD
+        const today = new Date().toISOString().slice(0, 10);
         a.download = `clash-scheduler-data-${today}.json`;
-
-        // 6. 模擬點擊這個連結來觸發瀏覽器下載
         a.click();
-
-        // 7. 下載觸發後，釋放剛才建立的 URL 物件以節省記憶體
         URL.revokeObjectURL(url);
     });
 
@@ -455,6 +409,12 @@ accountsPage.addEventListener('input', e => {
         const container = e.target.closest('.input-section').querySelector('.worker-rows-container');
         if (!appData.accounts[accountName].workerCounts) appData.accounts[accountName].workerCounts = {};
         appData.accounts[accountName].workerCounts[sectionId] = count;
+        
+        // 【新增】如果改變的是大本營工人數，立即更新工人學徒選單
+        if (sectionId === 'home-village') {
+            updateWorkerApprenticeSelect(accountName);
+        }
+
         saveData(appData);
         generateWorkerRows(container, count, accountName, sectionId);
     } else if (e.target.classList.contains('level-input')) {
@@ -471,11 +431,9 @@ accountsPage.addEventListener('input', e => {
         saveData(appData);
         recalculateDependentTasks(accountName);
     } else if (e.target.classList.contains('special-task-select')) {
-        // 【修改】原本的邏輯保持，新增即時更新選單
         appData.accounts[accountName].specialTasks.workerApprentice.targetWorker = e.target.value;
         saveData(appData);
         recalculateDependentTasks(accountName);
-        // 【新增】選擇後即時重建選單（以防其他任務同時修改）
         updateWorkerApprenticeSelect(accountName);
     }
 });
