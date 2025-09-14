@@ -194,48 +194,50 @@ accountsPage.addEventListener('click', e => {
 });
 
     // --- 動態生成工人輸入行 ---
-    function generateWorkerRows(container, count, accountName, sectionId) {
-        container.innerHTML = '';
-        const accountTasks = appData.accounts[accountName].tasks.filter(t => t.section === sectionId);
+function generateWorkerRows(container, count, accountName, sectionId) {
+    container.innerHTML = '';
+    const accountTasks = appData.accounts[accountName].tasks.filter(t => t.section === sectionId);
 
-        for (let i = 1; i <= count; i++) {
-            const workerId = `${i}`;
-            const existingTask = accountTasks.find(t => t.worker === workerId);
-            const taskId = existingTask ? existingTask.id : `${accountName}-${sectionId}-${workerId}-${Date.now()}`;
-            
-            let durationString = '';
-            if (existingTask && existingTask.duration) {
-                const d = existingTask.duration;
-                if (d.days > 0 || d.hours > 0 || d.minutes > 0) {
-                   durationString = `${d.days || 0}-${d.hours || 0}-${d.minutes || 0}`;
-                }
+    for (let i = 1; i <= count; i++) {
+        const workerId = `${i}`;
+        const existingTask = accountTasks.find(t => t.worker === workerId);
+        const taskId = existingTask ? existingTask.id : `${accountName}-${sectionId}-${workerId}-${Date.now()}`;
+        
+        let durationString = '';
+        if (existingTask && existingTask.duration) {
+            const d = existingTask.duration;
+            if (d.days > 0 || d.hours > 0 || d.minutes > 0) {
+               durationString = `${d.days || 0}-${d.hours || 0}-${d.minutes || 0}`;
             }
-
-            const row = document.createElement('div');
-            row.className = 'worker-row';
-            row.dataset.workerId = workerId;
-            row.dataset.sectionId = sectionId;
-
-            row.innerHTML = `
-                <div class="worker-task-line">
-                    <label class="worker-label">${workerId}</label>
-                    <input type="text" class="task-input" placeholder="任務名稱" value="${existingTask?.task || ''}">
-                </div>
-                <div class="duration-group">
-                    <input type="text" class="duration-combined" placeholder="天-時-分 (例: 5-12-30)" value="${durationString}">
-                </div>
-                <div class="completion-time" readonly></div>
-            `;
-            container.appendChild(row);
-
-            handleTaskInputChange(row, accountName, sectionId, workerId, taskId, false);
-
-            const inputs = row.querySelectorAll('.task-input, .duration-combined');
-            inputs.forEach(input => {
-                input.addEventListener('input', () => handleTaskInputChange(row, accountName, sectionId, workerId, taskId, true));
-            });
         }
+
+        const row = document.createElement('div');
+        row.className = 'worker-row';
+        row.dataset.workerId = workerId;
+        row.dataset.sectionId = sectionId;
+
+        row.innerHTML = `
+            <div class="worker-task-line">
+                <label class="worker-label">${workerId}</label>
+                <input type="text" class="task-input" placeholder="任務名稱" value="${existingTask?.task || ''}">
+            </div>
+            <div class="duration-group">
+                <input type="text" class="duration-combined" placeholder="天-時-分 (例: 5-12-30)" value="${durationString}">
+            </div>
+            <div class="completion-time" readonly></div>
+        `;
+        container.appendChild(row);
+
+        // 在生成時，立即觸發一次更新，但不儲存
+        // 這將使用儲存的 entryTimestamp 來計算並顯示完成時間
+        handleTaskInputChange(row, accountName, sectionId, workerId, taskId, false);
+
+        const inputs = row.querySelectorAll('.task-input, .duration-combined');
+        inputs.forEach(input => {
+            input.addEventListener('input', () => handleTaskInputChange(row, accountName, sectionId, workerId, taskId, true));
+        });
     }
+}
     
     // --- 從數據恢復輸入狀態 ---
     function restoreInputsFromData(data) {
@@ -279,7 +281,7 @@ accountsPage.addEventListener('click', e => {
         return Math.max(0, originalMinutes - reductionMinutes);
     }
 
-function handleTaskInputChange(row, accountName, sectionId, workerId, taskId, shouldSave = true) {
+    function handleTaskInputChange(row, accountName, sectionId, workerId, taskId, shouldSave = true) {
     const taskInput = row.querySelector('.task-input').value.trim();
     const durationInput = row.querySelector('.duration-combined').value;
     const completionTimeDiv = row.querySelector('.completion-time');
@@ -294,7 +296,7 @@ function handleTaskInputChange(row, accountName, sectionId, workerId, taskId, sh
     const durationMinutes = parseInt(parts[2], 10) || 0;
     const totalDurationInMinutes = (durationDays * 24 * 60) + (durationHours * 60) + durationMinutes;
 
-    // --- 3. 【新增】核心邏輯：決定 entryTimestamp ---
+    // --- 3. 核心邏輯：決定 entryTimestamp ---
     let entryTimestamp = task?.entryTimestamp || null;
     const hasNewDuration = totalDurationInMinutes > 0;
     const oldDurationInMinutes = task?.duration ? (task.duration.days * 1440) + (task.duration.hours * 60) + task.duration.minutes : 0;
@@ -303,7 +305,7 @@ function handleTaskInputChange(row, accountName, sectionId, workerId, taskId, sh
     if (shouldSave && hasNewDuration && totalDurationInMinutes !== oldDurationInMinutes) {
         entryTimestamp = Date.now(); // 設定為當前時間戳
     }
-
+    
     // 如果時長被清空，則時間戳也應清空
     if (!hasNewDuration) {
         entryTimestamp = null;
@@ -311,9 +313,9 @@ function handleTaskInputChange(row, accountName, sectionId, workerId, taskId, sh
 
     // --- 4. 計算最終時間 (含特殊任務減免) ---
     const finalDurationInMinutes = applySpecialReductions(totalDurationInMinutes, accountName, sectionId, workerId);
-
+    
     // --- 5. 計算並顯示完成時間 ---
-    // 【修改】呼叫新的 calculateCompletionTime，傳入固定的 entryTimestamp
+    // 【修改】這裡的 calculateCompletionTime 函式需要調整為接收兩個參數
     const completionTime = calculateCompletionTime(entryTimestamp, finalDurationInMinutes);
     completionTimeDiv.textContent = completionTime || 'N/A';
 
@@ -334,14 +336,14 @@ function handleTaskInputChange(row, accountName, sectionId, workerId, taskId, sh
         task.duration = { days: durationDays, hours: durationHours, minutes: durationMinutes };
         task.entryTimestamp = entryTimestamp; // 【新增】儲存時間戳
         task.completion = completionTime;
-
+        
         // 如果任務內容被完全清空，則從陣列中移除
         if (!task.task && !hasNewDuration) {
             appData.accounts[accountName].tasks = appData.accounts[accountName].tasks.filter(t => t.id !== taskId);
         }
 
         saveData(appData); // 保存到 localStorage
-
+        
         // 【新增】如果修改的是 home-village 任務，即時更新下拉選單
         if (sectionId === 'home-village') {
             updateWorkerApprenticeSelect(accountName);
@@ -349,36 +351,25 @@ function handleTaskInputChange(row, accountName, sectionId, workerId, taskId, sh
     }
 }
 
-    // --- 處理任務輸入變更 ---
-    function handleTaskInputChange(row, accountName, sectionId, workerId, taskId, shouldSave = true) {
-        const taskInput = row.querySelector('.task-input').value.trim();
-        
-        const durationInput = row.querySelector('.duration-combined').value;
-        const parts = durationInput.split('-').map(p => p.trim());
-        const durationDays = parseInt(parts[0], 10) || 0;
-        const durationHours = parseInt(parts[1], 10) || 0;
-        const durationMinutes = parseInt(parts[2], 10) || 0;
-
-        const totalDurationInMinutes = (durationDays * 24 * 60) + (durationHours * 60) + durationMinutes;
-
-        const finalDurationInMinutes = applySpecialReductions(totalDurationInMinutes, accountName, sectionId, workerId);
-
-        const completionTime = (finalDurationInMinutes > 0) ? calculateCompletionTime(finalDurationInMinutes, '分鐘') : null;
-        const completionTimeDiv = row.querySelector('.completion-time');
-        completionTimeDiv.textContent = completionTime || 'N/A';
-
-        if (shouldSave) {
-            let task = appData.accounts[accountName].tasks.find(t => t.id === taskId);
-            if (!task) {
-                task = { id: taskId, section: sectionId, worker: workerId };
-                appData.accounts[accountName].tasks.push(task);
-            }
-            task.task = taskInput;
-            task.duration = { days: durationDays, hours: durationHours, minutes: durationMinutes };
-            task.completion = completionTime;
-            saveData(appData);
-        }
+function calculateCompletionTime(entryTimestamp, finalDurationInMinutes) {
+    if (!entryTimestamp || finalDurationInMinutes <= 0) {
+        return 'N/A';
     }
+
+    // 創建一個 Date 物件，從 entryTimestamp 開始
+    const completionDate = new Date(entryTimestamp);
+    // 增加總時長 (以毫秒為單位)
+    completionDate.setMinutes(completionDate.getMinutes() + finalDurationInMinutes);
+
+    // 格式化完成時間
+    const year = completionDate.getFullYear();
+    const month = (completionDate.getMonth() + 1).toString().padStart(2, '0');
+    const day = completionDate.getDate().toString().padStart(2, '0');
+    const hours = completionDate.getHours().toString().padStart(2, '0');
+    const minutes = completionDate.getMinutes().toString().padStart(2, '0');
+
+    return `${year}/${month}/${day} ${hours}:${minutes}`;
+}
     
     // --- 當特殊任務等級改變時，重新計算相關任務時間 ---
     function recalculateDependentTasks(accountName) {

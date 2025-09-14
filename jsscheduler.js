@@ -29,14 +29,15 @@ function renderScheduler(data, sectionsConfig) {
         });
     });
 
-    // *** 新增：只顯示今天的任務 ***
+    // *** 新增：只顯示今天的任務 (已修正為 YYYY/MM/DD 格式) ***
     const today = new Date();
-    const todayStr = `${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`;
+    // 修正：生成包含年份的日期字串，以符合新的時間格式
+    const todayStr = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`;
+    
     const todayTasks = allTasks.filter(task => {
-        // 假設 task.completion 格式為 "MM/DD HH:MM"
+        // 確保 task.completion 的格式符合 YYYY/MM/DD
         return task.completion.startsWith(todayStr);
     });
-
 
     // 2. *** 全新排序邏輯 ***
     // 步驟 2.1: 主要排序 - 嚴格按照完成時間由早到晚
@@ -84,7 +85,7 @@ function renderScheduler(data, sectionsConfig) {
     }
 
     groupedTasks.forEach(task => {
-        // 從 "MM/DD HH:MM" 格式中提取時間部分
+        // 從 "YYYY/MM/DD HH:MM" 格式中提取時間部分
         const timePart = task.completion.split(' ')[1];
 
         const taskItem = document.createElement('div');
