@@ -415,6 +415,32 @@ function handleTaskInputChange(row, accountName, sectionId, workerId, taskId, sh
     document.getElementById('go-to-accounts-from-home').addEventListener('click', () => navigateTo('accounts-page'));
     document.getElementById('go-to-scheduler-from-accounts').addEventListener('click', () => navigateTo('scheduler-page'));
     document.getElementById('go-to-accounts-from-scheduler').addEventListener('click', () => navigateTo('accounts-page'));
+      // 【新增】匯出 JSON 按鈕的事件監聽
+    document.getElementById('export-json-btn').addEventListener('click', () => {
+        // 1. 將目前的 appData 物件轉換為格式化的 JSON 字串
+        //    使用 null, 2 參數可以讓輸出的 JSON 檔案有縮排，更易於閱讀
+        const jsonString = JSON.stringify(appData, null, 2);
+
+        // 2. 建立一個 Blob 物件，類型為 application/json
+        const blob = new Blob([jsonString], { type: 'application/json' });
+
+        // 3. 建立一個暫時的 URL 指向這個 Blob 物件
+        const url = URL.createObjectURL(blob);
+
+        // 4. 建立一個隱藏的 <a> 連結元素
+        const a = document.createElement('a');
+        a.href = url;
+        
+        // 5. 設定下載的檔案名稱，包含日期以方便識別
+        const today = new Date().toISOString().slice(0, 10); // 格式為 YYYY-MM-DD
+        a.download = `clash-scheduler-data-${today}.json`;
+
+        // 6. 模擬點擊這個連結來觸發瀏覽器下載
+        a.click();
+
+        // 7. 下載觸發後，釋放剛才建立的 URL 物件以節省記憶體
+        URL.revokeObjectURL(url);
+    });
 
 accountsPage.addEventListener('input', e => {
     const accountName = e.target.dataset.account;
