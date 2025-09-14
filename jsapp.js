@@ -281,36 +281,71 @@ accountsPage.addEventListener('click', e => {
 
 function handleTaskInputChange(row, accountName, sectionId, workerId, taskId, shouldSave = true) {
     const taskInput = row.querySelector('.task-input').value.trim();
-    
     const durationInput = row.querySelector('.duration-combined').value;
+    const completionTimeDiv = row.querySelector('.completion-time');
+
+    // --- 1. 取得現有任務資料 ---
+    let task = appData.accounts[accountName].tasks.find(t => t.id === taskId);
+
+    // --- 2. 解析使用者輸入的時長 ---
     const parts = durationInput.split('-').map(p => p.trim());
     const durationDays = parseInt(parts[0], 10) || 0;
     const durationHours = parseInt(parts[1], 10) || 0;
     const durationMinutes = parseInt(parts[2], 10) || 0;
-
     const totalDurationInMinutes = (durationDays * 24 * 60) + (durationHours * 60) + durationMinutes;
 
-    const finalDurationInMinutes = applySpecialReductions(totalDurationInMinutes, accountName, sectionId, workerId);
+    // --- 3. 【新增】核心邏輯：決定 entryTimestamp ---
+    let entryTimestamp = task?.entryTimestamp || null;
+    const hasNewDuration = totalDurationInMinutes > 0;
+    const oldDurationInMinutes = task?.duration ? (task.duration.days * 1440) + (task.duration.hours * 60) + task.duration.minutes : 0;
 
-    const completionTime = (finalDurationInMinutes > 0) ? calculateCompletionTime(finalDurationInMinutes, '分鐘') : null;
-    const completionTimeDiv = row.querySelector('.completion-time');
-    completionTimeDiv.textContent = completionTime || 'N/A';
-
-    if (shouldSave) {
-        let task = appData.accounts[accountName].tasks.find(t => t.id === taskId);
-        if (!task) {
-            task = { id: taskId, section: sectionId, worker: workerId };
-            appData.accounts[accountName].tasks.push(task);
-        }
-        task.task = taskInput;
-        task.duration = { days: durationDays, hours: durationHours, minutes: durationMinutes };
-        task.completion = completionTime;
-        saveData(appData); // 保存到 localStorage
+    // 只有在「儲存模式」下，且「時長發生變化」時，才更新時間戳
+    if (shouldSave && hasNewDuration && totalDurationInMinutes !== oldDurationInMinutes) {
+        entryTimestamp = Date.now(); // 設定為當前時間戳
     }
 
-    // 【新增】如果修改的是 home-village 任務，即時更新下拉選單
-    if (sectionId === 'home-village') {
-        updateWorkerApprenticeSelect(accountName);
+    // 如果時長被清空，則時間戳也應清空
+    if (!hasNewDuration) {
+        entryTimestamp = null;
+    }
+
+    // --- 4. 計算最終時間 (含特殊任務減免) ---
+    const finalDurationInMinutes = applySpecialReductions(totalDurationInMinutes, accountName, sectionId, workerId);
+
+    // --- 5. 計算並顯示完成時間 ---
+    // 【修改】呼叫新的 calculateCompletionTime，傳入固定的 entryTimestamp
+    const completionTime = calculateCompletionTime(entryTimestamp, finalDurationInMinutes);
+    completionTimeDiv.textContent = completionTime || 'N/A';
+
+    // --- 6. 儲存資料 ---
+    if (shouldSave) {
+        // 如果任務不存在，則在有內容時建立它
+        if (!task) {
+            if (taskInput || hasNewDuration) {
+                task = { id: taskId, section: sectionId, worker: workerId };
+                appData.accounts[accountName].tasks.push(task);
+            } else {
+                return; // 沒有任何內容，不儲存
+            }
+        }
+
+        // 更新任務的所有屬性
+        task.task = taskInput;
+        task.duration = { days: durationDays, hours: durationHours, minutes: durationMinutes };
+        task.entryTimestamp = entryTimestamp; // 【新增】儲存時間戳
+        task.completion = completionTime;
+
+        // 如果任務內容被完全清空，則從陣列中移除
+        if (!task.task && !hasNewDuration) {
+            appData.accounts[accountName].tasks = appData.accounts[accountName].tasks.filter(t => t.id !== taskId);
+        }
+
+        saveData(appData); // 保存到 localStorage
+
+        // 【新增】如果修改的是 home-village 任務，即時更新下拉選單
+        if (sectionId === 'home-village') {
+            updateWorkerApprenticeSelect(accountName);
+        }
     }
 }
 
