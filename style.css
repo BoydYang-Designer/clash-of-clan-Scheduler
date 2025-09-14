@@ -163,6 +163,14 @@ body {
     width: 100%;
 }
 
+/* 【新增】排程按鈕容器的樣式 */
+.scheduler-button-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 30px; /* 與下方 input-section 的間距對齊 */
+}
+
 .input-section {
     background-color: var(--color-surface);
     border: 1px solid var(--color-border);

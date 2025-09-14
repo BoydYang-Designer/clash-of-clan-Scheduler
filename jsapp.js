@@ -126,18 +126,21 @@ function renderAccountPages(configs, data) {
             }
         });
 
-        slide.innerHTML = `
+         slide.innerHTML = `
             <div class="account-header">
                 <img src="${acc.avatar}" alt="${acc.name} 頭像" class="account-avatar">
                 <h2 class="account-name">${acc.name}</h2>
             </div>
             <div class="account-body">
+                <div class="scheduler-button-container">
+                    <button class="btn btn-primary go-to-scheduler-btn">查看總排程</button>
+                </div>
                 ${sectionsHtml}
             </div>
         `;
         accountSlider.appendChild(slide);
     });
-    
+
     restoreInputsFromData(data);
 }
 
@@ -171,6 +174,13 @@ accountsPage.addEventListener('input', e => {
 });
 
 accountsPage.addEventListener('click', e => {
+    // 新增：處理前往排程頁的按鈕
+    if (e.target.closest('.go-to-scheduler-btn')) {
+        navigateTo('scheduler-page');
+        return; // 點擊按鈕後，不需要執行下面的收合邏輯
+    }
+
+    // 原有的：處理區塊收合的邏輯
     if (e.target.closest('.section-title')) {
         const section = e.target.closest('.input-section');
         if (section) {
@@ -185,8 +195,8 @@ accountsPage.addEventListener('click', e => {
             appData.accounts[accountName].collapsedSections[sectionId] = !isCurrentlyCollapsed;
             saveData(appData);
 
-            // 【新增】如果展開的是 special-tasks，則即時更新工人學徒下拉選單
-            if (sectionId === 'special-tasks' && isCurrentlyCollapsed) {  // 只在從收合轉展開時觸發
+            // 如果展開的是 special-tasks，則即時更新工人學徒下拉選單
+            if (sectionId === 'special-tasks' && isCurrentlyCollapsed) {
                 updateWorkerApprenticeSelect(accountName);
             }
         }
@@ -401,10 +411,11 @@ function calculateCompletionTime(entryTimestamp, finalDurationInMinutes) {
         document.getElementById('account-indicator').textContent = `${currentAccountIndex + 1} / ${ACCOUNTS_CONFIG.length}`;
     }
 
-    // --- 事件監聽 ---
+   // --- 事件監聽 ---
+    // 【新增】加上首頁按鈕的事件監聽
     document.getElementById('go-to-scheduler-from-home').addEventListener('click', () => navigateTo('scheduler-page'));
     document.getElementById('go-to-accounts-from-home').addEventListener('click', () => navigateTo('accounts-page'));
-    document.getElementById('go-to-scheduler-from-accounts').addEventListener('click', () => navigateTo('scheduler-page'));
+
     document.getElementById('go-to-accounts-from-scheduler').addEventListener('click', () => navigateTo('accounts-page'));
       // 【新增】匯出 JSON 按鈕的事件監聽
     document.getElementById('export-json-btn').addEventListener('click', () => {
