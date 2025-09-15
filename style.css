@@ -41,6 +41,45 @@ body {
     height: 100%;
 }
 
+/* --- 【新增】載入提示 --- */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0s linear 0.3s;
+    backdrop-filter: blur(3px);
+}
+
+.loading-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.3s ease, visibility 0s;
+}
+
+.spinner {
+    width: 60px;
+    height: 60px;
+    border: 7px solid var(--color-border);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 /* --- 頁面切換 --- */
 .page {
     width: 100%;
@@ -52,8 +91,8 @@ body {
     transition: transform 0.4s ease-in-out;
     display: flex;
     flex-direction: column;
-    padding: 20px;
-    overflow-y: auto;
+    padding: 0; /* 【修改】將 padding 移至內部容器 */
+    overflow-y: hidden; /* 【修改】頁面本身不滾動 */
     -webkit-overflow-scrolling: touch;
 }
 
@@ -97,6 +136,7 @@ body {
 #home-page {
     justify-content: center;
     align-items: center;
+    padding: 20px;
 }
 
 .home-content {
@@ -116,7 +156,6 @@ body {
 
 /* --- 帳號頁面 --- */
 #accounts-page {
-    padding: 0;
     overflow: hidden;
 }
 
@@ -133,7 +172,8 @@ body {
     flex: 0 0 100%;
     width: 100%;
     scroll-snap-align: start;
-    padding: 20px 20px 100px 20px; /* Reduced padding-bottom */
+    /* 【修改】增加底部 padding，避免被固定頁尾遮擋 */
+    padding: 20px 20px 160px 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -318,35 +358,15 @@ body {
     margin-right: 8px;
 }
 
-/* --- 頁尾樣式 --- */
+/* --- 頁尾樣式 (Fixed Footer) --- */
 
-/* 【修改】通用頁尾樣式，改為靜態、隨內容滾動 */
-.page-footer {
-    padding: 15px 0;
-    text-align: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-top: 20px; /* 與上方內容的間距 */
-}
-
-/* 【新增】帳號頁面中，滾動內容區域裡的頁尾 */
-.account-page-footer {
-    margin-top: 30px;
-    width: 100%;
-}
-.account-page-footer .btn {
-    width: 100%;
-}
-
-
-/* 【新增】用於固定帳號頁面下方滑動導航的專屬頁尾 */
+/* 【修改】帳號頁面的頁尾，改為固定 */
 .slider-footer {
     padding: 15px;
     background-color: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(5px);
     border-top: 1px solid var(--color-border);
-    position: absolute;
+    position: fixed; /* 改為 fixed */
     bottom: 0;
     left: 0;
     right: 0;
@@ -359,20 +379,46 @@ body {
     gap: 15px;
 }
 
-.slider-footer .footer-nav-controls {
-    order: 2; /* 導航在下方 */
-}
-
-/* 【修改】排程頁尾的按鈕，現在會繼承通用頁尾樣式 */
-#scheduler-page .page-footer .btn {
+.slider-footer .go-to-scheduler-from-accounts {
+    order: 1; /* 按鈕在上方 */
     width: 100%;
 }
 
-.footer-nav-controls {
+.slider-footer .footer-nav-controls {
+    order: 2; /* 導航在下方 */
     display: flex;
     align-items: center;
     gap: 10px;
 }
+
+/* 【修改】排程頁面的頁尾，同樣改為固定 */
+#scheduler-page .page-footer {
+    padding: 15px;
+    background-color: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(5px);
+    border-top: 1px solid var(--color-border);
+    position: fixed; /* 改為 fixed */
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+}
+
+
+#scheduler-page .page-footer .btn {
+    width: 100%;
+    max-width: 400px; /* 在大螢幕上限制按鈕寬度 */
+}
+
+/* 【移除】舊的滾動頁尾樣式 */
+.account-page-footer {
+   display: none;
+}
+
 
 .slider-arrow {
     background: none;
@@ -389,6 +435,11 @@ body {
 }
 
 /* --- 排程頁面 --- */
+#scheduler-page {
+    display: flex;
+    flex-direction: column;
+}
+
 #scheduler-page .page-header {
     background-color: var(--color-surface);
     padding: 20px;
@@ -397,18 +448,24 @@ body {
     position: sticky;
     top: 0;
     z-index: 5;
+    flex-shrink: 0;
 }
 
 #scheduler-page .page-header h2 {
     font-size: 2rem;
 }
 
-/* 【修改】移除為絕對定位頁尾留下的空間 */
+/* 【修改】內容容器會自動填滿剩餘空間並可滾動 */
 .task-list-container {
+    flex-grow: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     padding: 20px;
     display: flex;
     flex-direction: column;
     gap: 25px;
+    /* 【修改】增加底部 padding，避免被固定頁尾遮擋 */
+    padding-bottom: 120px;
 }
 
 .task-item {

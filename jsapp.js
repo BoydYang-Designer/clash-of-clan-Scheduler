@@ -26,18 +26,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const accountsPage = document.getElementById('accounts-page');
     const taskListContainer = document.getElementById('task-list');
     const accountSlider = document.querySelector('.account-slider-container');
+    const loadingOverlay = document.getElementById('loading-overlay'); // 【新增】
 
-    // --- 導航函數 ---
-    function navigateTo(pageId) {
-        pages.forEach(p => p.classList.remove('active'));
-        document.getElementById(pageId).classList.add('active');
-        
-        if (pageId === 'scheduler-page') {
-            renderScheduler(appData, SECTIONS_CONFIG);
-        }
+    // --- 【新增】載入提示函式 ---
+    function showLoader() {
+        loadingOverlay.classList.add('visible');
     }
 
-// --- 動態生成帳號頁面 ---
+    function hideLoader() {
+        loadingOverlay.classList.remove('visible');
+    }
+
+    // --- 【修改】導航函數，整合載入提示 ---
+    function navigateTo(pageId) {
+        showLoader();
+        
+        // 使用 setTimeout 確保載入提示有時間渲染出來
+        setTimeout(() => {
+            pages.forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            
+            if (pageId === 'scheduler-page') {
+                renderScheduler(appData, SECTIONS_CONFIG);
+            } else if (pageId === 'accounts-page') {
+                // 當切換到帳號頁時，重新渲染以確保資料最新
+                renderAccountPages(ACCOUNTS_CONFIG, appData);
+                updateSlider();
+            }
+            
+            // 延遲一點時間隱藏載入提示，讓頁面內容渲染完成
+            setTimeout(hideLoader, 200);
+        }, 50);
+    }
+
+
+// --- 【修改】動態生成帳號頁面，移除頁尾按鈕 ---
 function renderAccountPages(configs, data) {
     accountSlider.innerHTML = '';
     configs.forEach((acc, index) => {
@@ -119,6 +142,7 @@ function renderAccountPages(configs, data) {
             }
         });
 
+         // 【修改】移除 slide 內部獨立的頁尾按鈕
          slide.innerHTML = `
             <div class="account-header">
                 <img src="${acc.avatar}" alt="${acc.name} 頭像" class="account-avatar">
@@ -126,9 +150,6 @@ function renderAccountPages(configs, data) {
             </div>
             <div class="account-body">
                 ${sectionsHtml}
-            </div>
-            <div class="account-page-footer">
-                <button class="btn btn-primary go-to-scheduler-from-accounts">查看總排程</button>
             </div>
         `;
         accountSlider.appendChild(slide);
@@ -391,6 +412,7 @@ function calculateCompletionTime(entryTimestamp, finalDurationInMinutes) {
     document.getElementById('go-to-scheduler-from-home').addEventListener('click', () => navigateTo('scheduler-page'));
     document.getElementById('go-to-accounts-from-home').addEventListener('click', () => navigateTo('accounts-page'));
     
+    // 【修改】此監聽器現在會處理固定頁尾中的按鈕
     document.body.addEventListener('click', e => {
         if (e.target.classList.contains('go-to-scheduler-from-accounts')) {
             navigateTo('scheduler-page');
@@ -449,20 +471,32 @@ accountsPage.addEventListener('input', e => {
         updateWorkerApprenticeSelect(accountName);
     }
 });
-    // --- 【修改】刪除任務的事件監聽 ---
+    // --- 【修改】刪除任務的事件監聽，整合載入提示 ---
     taskListContainer.addEventListener('click', (e) => {
         const deleteButton = e.target.closest('.btn-delete');
         if (deleteButton) {
             const accountName = deleteButton.dataset.account;
             const taskId = deleteButton.dataset.taskId;
-            const account = appData.accounts[accountName];
+            
+            showLoader(); // 顯示載入提示
 
-            if (account) {
+            // 異步處理，確保提示優先顯示
+            setTimeout(() => {
+                const account = appData.accounts[accountName];
+                if (!account) {
+                    hideLoader();
+                    return;
+                }
+
                 const taskToDelete = account.tasks.find(task => task.id === taskId);
-                if (!taskToDelete) return;
+                if (!taskToDelete) {
+                    hideLoader();
+                    return;
+                }
 
                 const sectionToExpand = taskToDelete.section;
 
+                // 清理相關特殊任務
                 const specialTasks = account.specialTasks;
                 if (taskToDelete.section === 'home-village' && taskToDelete.worker === specialTasks.workerApprentice.targetWorker) {
                     specialTasks.workerApprentice.level = '';
@@ -472,7 +506,7 @@ accountsPage.addEventListener('input', e => {
                 }
                 
                 if (!account.collapsedSections) account.collapsedSections = {};
-                account.collapsedSections[sectionToExpand] = false;
+                account.collapsedSections[sectionToExpand] = false; // 展開相關區塊
 
                 account.tasks = account.tasks.filter(task => task.id !== taskId);
                 
@@ -481,12 +515,14 @@ accountsPage.addEventListener('input', e => {
                 const accountIndex = ACCOUNTS_CONFIG.findIndex(acc => acc.name === accountName);
                 if (accountIndex !== -1) {
                     currentAccountIndex = accountIndex;
-                    navigateTo('accounts-page');
+                    
+                    // 手動執行導航和渲染，以更好地控制載入提示的隱藏時機
+                    pages.forEach(p => p.classList.remove('active'));
+                    const accountsPageElement = document.getElementById('accounts-page');
+                    accountsPageElement.classList.add('active');
+                    
                     renderAccountPages(ACCOUNTS_CONFIG, appData);
                     updateSlider();
-
-                    // --- 【全新修改】等待轉場動畫結束後再滾動 ---
-                    const accountsPageElement = document.getElementById('accounts-page');
 
                     const scrollToAction = () => {
                         const targetSlide = document.querySelector(`.account-page-slide[data-account-name="${accountName}"]`);
@@ -496,17 +532,17 @@ accountsPage.addEventListener('input', e => {
                                 targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
                             }
                         }
+                        // 在轉場和滾動都結束後才隱藏載入提示
+                        setTimeout(hideLoader, 100);
                     };
                     
-                    // 監聽 'transitionend' 事件，它會在 CSS 過場動畫結束時觸發
-                    // { once: true } 確保這個監聽器只會執行一次，然後自動移除，避免重複觸發
                     accountsPageElement.addEventListener('transitionend', scrollToAction, { once: true });
-                    // --- 結束修改 ---
+                } else {
+                    hideLoader();
                 }
-            }
+            }, 50);
         }
     });
-    // --- 結束修改 ---
 
 
     document.getElementById('next-account').addEventListener('click', () => {

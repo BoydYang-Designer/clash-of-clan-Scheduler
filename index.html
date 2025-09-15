@@ -13,6 +13,10 @@
     <script defer src="jsapp.js"></script>
 </head>
 <body>
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+
     <main id="app-container">
 
         <section id="home-page" class="page active">
@@ -30,6 +34,7 @@
             <div class="account-slider-container">
             </div>
             <footer class="slider-footer">
+                <button class="btn btn-primary go-to-scheduler-from-accounts">查看總排程</button>
                 <div class="footer-nav-controls">
                     <button id="prev-account" class="slider-arrow">‹</button>
                     <span id="account-indicator">1 / 5</span>
