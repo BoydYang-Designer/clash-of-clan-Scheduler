@@ -626,3 +626,17 @@ function checkAndApplySpecialTaskDeductions() {
         }
     }
 }
+
+// 處理行動裝置鍵盤彈出時的畫面高度問題
+const appContainer = document.getElementById('app-container');
+
+function setAppHeight() {
+    // 使用 window.innerHeight 來取得包含鍵盤的正確可視高度
+    appContainer.style.height = `${window.innerHeight}px`;
+}
+
+// 頁面載入和視窗大小改變時都重新計算高度
+window.addEventListener('resize', setAppHeight);
+
+// 初始載入時先設定一次
+setAppHeight();
