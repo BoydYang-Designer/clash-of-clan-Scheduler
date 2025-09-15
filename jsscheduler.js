@@ -89,7 +89,7 @@ function renderScheduler(data, sectionsConfig) {
         const timePart = task.completion.split(' ')[1];
 
         const taskItem = document.createElement('div');
-        taskItem.className = 'task-item';
+        taskItem.className = `task-item task-section-${task.section}`; // 新增 class
         taskItem.innerHTML = `
             <img src="${task.avatar}" alt="${task.accountName}" class="task-avatar">
             <div class="task-info">
