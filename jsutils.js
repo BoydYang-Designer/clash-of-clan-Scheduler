@@ -31,24 +31,20 @@ function loadData(accountsConfig) {
         if (!parsedData.accounts[acc.name].specialTasks) {
             parsedData.accounts[acc.name].specialTasks = {
                 labAssistant: { level: '' },
-                // 【修改】將預設目標工人改為數字
                 workerApprentice: { level: '', targetWorker: '1' }
             };
         }
 
-        // 【新增】確保 collapsedSections 存在，並預設所有區塊為收起 (true)
         if (!parsedData.accounts[acc.name].collapsedSections) {
             parsedData.accounts[acc.name].collapsedSections = {};
         }
-        // 為每個 section ID 設預設收起狀態
         SECTIONS_CONFIG.forEach(sec => {
             if (parsedData.accounts[acc.name].collapsedSections[sec.id] === undefined) {
-                parsedData.accounts[acc.name].collapsedSections[sec.id] = true; // 收起
+                parsedData.accounts[acc.name].collapsedSections[sec.id] = true;
             }
         });
-        // 特殊任務也預設收起
         if (parsedData.accounts[acc.name].collapsedSections['special-tasks'] === undefined) {
-            parsedData.accounts[acc.name].collapsedSections['special-tasks'] = true; // 收起
+            parsedData.accounts[acc.name].collapsedSections['special-tasks'] = true;
         }
     });
     
@@ -64,42 +60,52 @@ function saveData(data) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
-
-// --- 時間計算 ---
-
 /**
- * 計算完成時間
- * @param {number} duration - 時長 (數字)
- * @param {string} unit - 單位 ('分鐘', '小時', '天')
- * @returns {string|null} 格式化的時間字串 or null
+ * 【共用函數】計算並格式化完成時間
  */
-function calculateCompletionTime(duration, unit) {
-    if (isNaN(duration) || duration <= 0) {
-        return null;
+function calculateCompletionTime(entryTimestamp, totalDurationInMinutes, totalDeductedMinutes = 0) {
+    if (!entryTimestamp || totalDurationInMinutes <= 0) {
+        return { time: 'N/A', deductions: 0, rawTime: null };
     }
 
-    const now = new Date();
-    let futureDate = new Date(now);
+    const now = Date.now();
+    const elapsedMinutes = (now - entryTimestamp) / (1000 * 60);
+    const remainingMinutes = Math.max(0, totalDurationInMinutes - totalDeductedMinutes - elapsedMinutes);
 
-    switch (unit) {
-        case '分鐘':
-            futureDate.setMinutes(now.getMinutes() + duration);
-            break;
-        case '小時':
-            futureDate.setMinutes(now.getMinutes() + duration * 60);
-            break;
-        case '天':
-            futureDate.setHours(now.getHours() + duration * 24);
-            break;
+    if (remainingMinutes <= 0) {
+        return { time: '已完成', deductions: Math.round(totalDeductedMinutes), rawTime: '已完成' };
     }
 
-    const month = String(futureDate.getMonth() + 1).padStart(2, '0');
-    const day = String(futureDate.getDate()).padStart(2, '0');
-    const hours = String(futureDate.getHours()).padStart(2, '0');
-    const minutes = String(futureDate.getMinutes()).padStart(2, '0');
+    const completionDate = new Date(now + remainingMinutes * 60 * 1000);
+    const today = new Date();
 
-    return `${month}/${day} ${hours}:${minutes}`;
+    const year = completionDate.getFullYear();
+    const month = (completionDate.getMonth() + 1).toString().padStart(2, '0');
+    const day = completionDate.getDate().toString().padStart(2, '0');
+    const hours = completionDate.getHours().toString().padStart(2, '0');
+    const minutes = completionDate.getMinutes().toString().padStart(2, '0');
+
+    // 提供給帳號頁面使用的、會根據是否為今天而變化的顯示格式
+    let displayTimeForAccounts;
+    const isToday = today.getFullYear() === year &&
+                    today.getMonth() === completionDate.getMonth() &&
+                    today.getDate() === day;
+
+    if (isToday) {
+        displayTimeForAccounts = `${hours}:${minutes}`;
+    } else {
+        displayTimeForAccounts = `${month}/${day} ${hours}:${minutes}`;
+    }
+
+    return {
+        // time 屬性改為給帳號頁面專用
+        time: displayTimeForAccounts, 
+        deductions: Math.round(totalDeductedMinutes),
+        // rawTime 屬性改為 Date 物件，方便比較
+        rawTime: completionDate 
+    };
 }
+
 
 /**
  * @param {Date} date

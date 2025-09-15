@@ -1,84 +1,66 @@
 /**
- * 渲染排程頁面
+ * 【MAJOR UPDATE】渲染總排程頁面
+ * - 只顯示未來 24 小時內的任務
+ * - 時間格式統一為 MM/DD HH:mm
  * @param {Object} data - 所有帳號的資料
  * @param {Array} sectionsConfig - 區塊設定，用於查找標題
  */
 function renderScheduler(data, sectionsConfig) {
     const taskListContainer = document.getElementById('task-list');
-    taskListContainer.innerHTML = ''; // 清空現有列表
+    taskListContainer.innerHTML = ''; 
 
-    // 建立一個從 section ID 到 section title 的映射表，方便查找
     const sectionTitleMap = sectionsConfig.reduce((map, section) => {
         map[section.id] = section.title;
         return map;
     }, {});
 
-    // 1. 收集所有有效的任務並扁平化，同時帶上所需資訊
-    let allTasks = [];
+    // 1. 設定時間範圍：從現在起算的 24 小時內
+    const now = new Date();
+    const twentyFourHoursLater = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+    let upcomingTasks = [];
     Object.keys(data.accounts).forEach(accountName => {
         const account = data.accounts[accountName];
         account.tasks.forEach(task => {
-            if (task.task && task.completion && task.completion !== 'N/A' && task.completion !== '已完成') {
-                allTasks.push({
-                    ...task,
-                    accountName,
-                    avatar: account.avatar, // 攜帶頭像資訊
-                    sectionTitle: sectionTitleMap[task.section] || '未知區域' // 攜帶區域名稱
-                });
+            // 確保任務是有效的
+            if (task.task && task.duration && task.entryTimestamp) {
+                const originalTotalMinutes = (task.duration.days * 24 * 60) + (task.duration.hours * 60) + task.duration.minutes;
+                const totalDeductedMinutes = task.totalDeductedMinutes || 0;
+                
+                // 使用共用的 calculateCompletionTime 函數獲取最新的完成時間 Date 物件
+                const completionResult = calculateCompletionTime(task.entryTimestamp, originalTotalMinutes, totalDeductedMinutes);
+
+                // 檢查計算出的時間是否有效，且落在我們的時間範圍內
+                if (completionResult.rawTime && completionResult.rawTime !== '已完成' && completionResult.rawTime > now && completionResult.rawTime <= twentyFourHoursLater) {
+                    upcomingTasks.push({
+                        ...task,
+                        accountName,
+                        avatar: account.avatar,
+                        sectionTitle: sectionTitleMap[task.section] || '未知區域',
+                        completionDate: completionResult.rawTime // 儲存Date物件以供排序
+                    });
+                }
             }
         });
     });
 
-    // *** 新增：只顯示今天的任務 (已修正為 YYYY/MM/DD 格式) ***
-    const today = new Date();
-    const todayStr = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`;
-    
-    const todayTasks = allTasks.filter(task => {
-        return task.completion.startsWith(todayStr);
-    });
-
-    // 2. *** 全新排序邏輯 ***
-    // 步驟 2.1: 主要排序 - 嚴格按照完成時間由早到晚
-    todayTasks.sort((a, b) => new Date(a.completion) - new Date(b.completion));
-
-    // 步驟 2.2: 次要排序 - 處理群組邏輯
-    const oneHour = 60 * 60 * 1000;
-    let groupedTasks = [];
-    let processedIndices = new Set();
-
-    for (let i = 0; i < todayTasks.length; i++) {
-        if (processedIndices.has(i)) {
-            continue;
-        }
-
-        const currentTask = todayTasks[i];
-        groupedTasks.push(currentTask);
-        processedIndices.add(i);
-
-        for (let j = i + 1; j < todayTasks.length; j++) {
-            if (processedIndices.has(j)) {
-                continue;
-            }
-
-            const nextTask = todayTasks[j];
-            const timeDifference = new Date(nextTask.completion) - new Date(currentTask.completion);
-
-            if (nextTask.accountName === currentTask.accountName && timeDifference <= oneHour) {
-                groupedTasks.push(nextTask);
-                processedIndices.add(j);
-            }
-        }
-    }
-
+    // 2. 根據完成時間由早到晚排序
+    upcomingTasks.sort((a, b) => a.completionDate - b.completionDate);
 
     // 3. 顯示任務或提示訊息
-    if (groupedTasks.length === 0) {
-        taskListContainer.innerHTML = `<p id="no-tasks-message">今天沒有任何已排程的任務。</p>`;
+    if (upcomingTasks.length === 0) {
+        taskListContainer.innerHTML = `<p id="no-tasks-message">未來24小時內沒有任何已排程的任務。</p>`;
         return;
     }
 
-    groupedTasks.forEach(task => {
-        const timePart = task.completion.split(' ')[1];
+    upcomingTasks.forEach(task => {
+        // 格式化時間為 MM/DD HH:mm
+        const d = task.completionDate;
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        const formattedTime = `${month}/${day} ${hours}:${minutes}`;
 
         const taskItem = document.createElement('div');
         taskItem.className = `task-item task-section-${task.section}`;
@@ -88,7 +70,7 @@ function renderScheduler(data, sectionsConfig) {
                 <span class="task-account-name">${task.accountName}</span>
                 <span class="task-section-name">${task.sectionTitle}</span>
                 <span class="task-name">${task.task}</span>
-                <span class="task-completion">${timePart}</span>
+                <span class="task-completion">${formattedTime}</span>
             </div>
             <button class="btn-delete" data-account="${task.accountName}" data-task-id="${task.id}"></button>
         `;

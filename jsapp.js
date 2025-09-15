@@ -191,7 +191,7 @@ accountsPage.addEventListener('click', e => {
 });
 
 /**
- * 【修改】重寫時間計算邏輯，以反應剩餘時間
+ * 【MAJOR UPDATE】重寫此函數以滿足新的時間計算與顯示需求
  */
 function generateWorkerRows(container, count, accountName, sectionId) {
     count = Math.min(count, 9);
@@ -203,10 +203,25 @@ function generateWorkerRows(container, count, accountName, sectionId) {
         const existingTask = accountTasks.find(t => t.worker === workerId);
         const taskId = existingTask ? existingTask.id : `${accountName}-${sectionId}-${workerId}-${Date.now()}`;
         
-        // 永遠顯示原始持續時間（黑字）
         let durationString = '';
-        let durationColor = 'black';
-        if (existingTask?.duration) {
+        let durationColor = 'black'; // 預設為黑色字體
+
+        // 如果任務存在且有計時開始點，則計算剩餘時間並顯示為藍色
+        if (existingTask && existingTask.entryTimestamp) {
+            const originalTotalMinutes = (existingTask.duration.days * 24 * 60) + (existingTask.duration.hours * 60) + existingTask.duration.minutes;
+            const elapsedMinutes = (Date.now() - existingTask.entryTimestamp) / (1000 * 60);
+            const totalDeductedMinutes = existingTask.totalDeductedMinutes || 0;
+            
+            const remainingMinutes = Math.max(0, originalTotalMinutes - elapsedMinutes - totalDeductedMinutes);
+
+            const remDays = Math.floor(remainingMinutes / (24 * 60));
+            const remHours = Math.floor((remainingMinutes % (24 * 60)) / 60);
+            const remMinutes = Math.round(remainingMinutes % 60);
+
+            durationString = `${remDays}-${remHours}-${remMinutes}`;
+            durationColor = 'blue'; // 已重新計算的時間顯示為藍色
+        } else if (existingTask?.duration) {
+            // 若任務存在但尚未開始計時，顯示原始時間
             durationString = `${existingTask.duration.days || 0}-${existingTask.duration.hours || 0}-${existingTask.duration.minutes || 0}`;
         }
 
@@ -227,13 +242,16 @@ function generateWorkerRows(container, count, accountName, sectionId) {
         `;
         container.appendChild(row);
 
+        // 手動輸入時，字體顏色變回黑色
         const durationInput = row.querySelector('.duration-combined');
         durationInput.addEventListener('input', () => {
             durationInput.style.color = 'black';
         });
 
+        // 觸發一次計算以顯示當前的完成時間
         handleTaskInputChange(row, accountName, sectionId, workerId, taskId, false);
 
+        // 為所有輸入框添加事件監聽器，以便在變動時保存
         const inputs = row.querySelectorAll('.task-input, .duration-combined');
         inputs.forEach(input => {
             input.addEventListener('input', () => handleTaskInputChange(row, accountName, sectionId, workerId, taskId, true));
@@ -258,9 +276,6 @@ function generateWorkerRows(container, count, accountName, sectionId) {
         });
     }
 
-    /**
-     * 【修改】註記改為以小時顯示
-     */
     function handleTaskInputChange(row, accountName, sectionId, workerId, taskId, shouldSave = true) {
         const taskInput = row.querySelector('.task-input').value.trim();
         const durationInput = row.querySelector('.duration-combined').value;
@@ -275,27 +290,27 @@ function generateWorkerRows(container, count, accountName, sectionId) {
         const totalDurationInMinutes = (durationDays * 24 * 60) + (durationHours * 60) + durationMinutes;
 
         let entryTimestamp = task?.entryTimestamp || null;
-        const hasNewDuration = totalDurationInMinutes > 0;
         
-        // 只有在手動輸入新時間時，才更新時間戳，並儲存原始 duration
+        // 【核心變動】只在手動輸入新時間時，才更新時間戳，並儲存原始 duration
         if (shouldSave && document.activeElement === row.querySelector('.duration-combined')) {
             entryTimestamp = Date.now();
         }
         
-        if (!hasNewDuration) {
+        if (totalDurationInMinutes <= 0) {
             entryTimestamp = null;
         }
 
         const totalDeductedMinutes = task?.totalDeductedMinutes || 0;
         
-        // 使用儲存的原始 duration（如果存在），否則用 input 的（新輸入時）
-        const effectiveTotalDuration = task?.duration 
-            ? (task.duration.days * 24 * 60) + (task.duration.hours * 60) + task.duration.minutes
-            : totalDurationInMinutes;
+        // 【核心變動】使用儲存的原始 duration 進行計算（如果存在），否則用 input 的（代表是新輸入）
+        const effectiveTotalDuration = (shouldSave && document.activeElement === row.querySelector('.duration-combined')) || !task?.duration
+            ? totalDurationInMinutes
+            : (task.duration.days * 24 * 60) + (task.duration.hours * 60) + task.duration.minutes;
         
         const completionResult = calculateCompletionTime(entryTimestamp, effectiveTotalDuration, totalDeductedMinutes);
         
         let completionHtml = completionResult.time;
+        // 如果有扣除時間，則加上提示
         if (completionResult.deductions > 0) {
             let deductionText;
             if (completionResult.deductions % 60 === 0) {
@@ -310,20 +325,24 @@ function generateWorkerRows(container, count, accountName, sectionId) {
 
         if (shouldSave) {
             if (!task) {
-                if (taskInput || hasNewDuration) {
+                if (taskInput || totalDurationInMinutes > 0) {
                     task = { id: taskId, section: sectionId, worker: workerId, totalDeductedMinutes: 0 };
                     appData.accounts[accountName].tasks.push(task);
                 } else {
-                    return;
+                    return; // 如果是空任務，直接返回
                 }
             }
 
             task.task = taskInput;
-            task.duration = { days: durationDays, hours: durationHours, minutes: durationMinutes };
+            // 【核心變動】只有在手動輸入時才更新原始 duration
+            if (document.activeElement === row.querySelector('.duration-combined')) {
+                task.duration = { days: durationDays, hours: durationHours, minutes: durationMinutes };
+            }
             task.entryTimestamp = entryTimestamp;
-            task.completion = completionResult.time;
+            task.completion = completionResult.rawTime; // 儲存原始的完成時間，用於總排程排序
             
-            if (!task.task && !hasNewDuration) {
+            // 如果任務名稱和時間都被清空，則從資料中移除
+            if (!task.task && totalDurationInMinutes <= 0) {
                 appData.accounts[accountName].tasks = appData.accounts[accountName].tasks.filter(t => t.id !== taskId);
             }
 
@@ -334,26 +353,25 @@ function generateWorkerRows(container, count, accountName, sectionId) {
         }
     }
 
+/**
+ * 【MAJOR UPDATE】重寫時間計算邏輯，以滿足新的顯示格式需求
+ */
 function calculateCompletionTime(entryTimestamp, totalDurationInMinutes, totalDeductedMinutes = 0) {
     if (!entryTimestamp || totalDurationInMinutes <= 0) {
-        return { time: 'N/A', deductions: 0 };
+        return { time: 'N/A', deductions: 0, rawTime: 'N/A' };
     }
 
     const now = Date.now();
     const elapsedMinutes = (now - entryTimestamp) / (1000 * 60);
     const remainingMinutes = Math.max(0, totalDurationInMinutes - totalDeductedMinutes - elapsedMinutes);
+    const effectiveDeductions = totalDeductedMinutes + elapsedMinutes;
 
     if (remainingMinutes <= 0) {
-        return { time: '已完成', deductions: totalDeductedMinutes };
+        return { time: '已完成', deductions: Math.round(totalDeductedMinutes), rawTime: '已完成' };
     }
 
-    // 如果剩餘時間小於 60 分鐘，直接回傳分鐘數
-    if (remainingMinutes < 60) {
-        return { time: `${Math.round(remainingMinutes)} 分鐘`, deductions: totalDeductedMinutes };
-    }
-
-    const completionDate = new Date(now);
-    completionDate.setMinutes(completionDate.getMinutes() + remainingMinutes);
+    const completionDate = new Date(now + remainingMinutes * 60 * 1000);
+    const today = new Date();
 
     const year = completionDate.getFullYear();
     const month = (completionDate.getMonth() + 1).toString().padStart(2, '0');
@@ -361,9 +379,24 @@ function calculateCompletionTime(entryTimestamp, totalDurationInMinutes, totalDe
     const hours = completionDate.getHours().toString().padStart(2, '0');
     const minutes = completionDate.getMinutes().toString().padStart(2, '0');
 
+    const rawTime = `${year}/${month}/${day} ${hours}:${minutes}`;
+    let displayTime;
+
+    // 判斷完成日期是否為今天
+    const isToday = today.getFullYear() === year &&
+                    today.getMonth() === completionDate.getMonth() &&
+                    today.getDate() === day;
+
+    if (isToday) {
+        displayTime = `${hours}:${minutes}`; // 當天完成，只顯示時間
+    } else {
+        displayTime = `${month}/${day} ${hours}:${minutes}`; // 未來完成，顯示月/日 時間
+    }
+
     return {
-        time: `${year}/${month}/${day} ${hours}:${minutes}`,
-        deductions: totalDeductedMinutes
+        time: displayTime,
+        deductions: Math.round(totalDeductedMinutes),
+        rawTime: rawTime // 提供給排程頁面排序用的完整時間
     };
 }
     
