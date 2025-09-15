@@ -326,7 +326,7 @@ body {
 }
 
 .worker-row input, .worker-row select {
-    margin-right:80px;
+    margin-right:100px;
     padding: 15px;
     border: 1px solid var(--color-border);
     border-radius: 15px;
@@ -572,7 +572,7 @@ body {
     padding: 10px;
     border: 1px solid var(--color-border);
     border-radius: 8px;
-    width: 100px;
+    width: 80%;
 }
 
 .special-task-block {
@@ -598,8 +598,13 @@ body {
 }
 
 .worker-task-line .task-input {
-    flex-grow: 1;
+    flex-grow: 1;  /* 保留原有，讓它擴展 */
+    width: 100%;   /* 新增：強制填滿父容器寬度 */
+    min-width: 200px;  /* 可選：設定最小寬度，避免太窄 */
+    /* 其他樣式如 padding、border 保持不變 */
 }
+
+
 
 /* --- 手機版響應式設計 --- */
 @media (max-width: 600px) {
@@ -607,6 +612,7 @@ body {
     .main-title {
         font-size: 3.5rem;
     }
+
 
     /* 調整頭像大小 */
     .account-avatar {
