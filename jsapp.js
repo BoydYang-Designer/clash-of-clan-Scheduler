@@ -477,77 +477,78 @@ if (e.target.classList.contains('worker-count')) {
     }
 });
     // --- 【修改】刪除任務的事件監聽，整合載入提示 ---
-    taskListContainer.addEventListener('click', (e) => {
-        const deleteButton = e.target.closest('.btn-delete');
-        if (deleteButton) {
-            const accountName = deleteButton.dataset.account;
-            const taskId = deleteButton.dataset.taskId;
+taskListContainer.addEventListener('click', (e) => {
+    const deleteButton = e.target.closest('.btn-delete');
+    if (deleteButton) {
+        const accountName = deleteButton.dataset.account;
+        const taskId = deleteButton.dataset.taskId;
+        
+        showLoader(); // 顯示載入提示
+
+        // 異步處理，確保提示優先顯示
+        setTimeout(() => {
+            const account = appData.accounts[accountName];
+            if (!account) {
+                hideLoader();
+                return;
+            }
+
+            const taskToDelete = account.tasks.find(task => task.id === taskId);
+            if (!taskToDelete) {
+                hideLoader();
+                return;
+            }
+
+            const sectionToExpand = taskToDelete.section;
+
+            // 清理相關特殊任務
+            const specialTasks = account.specialTasks;
+            if (taskToDelete.section === 'home-village' && taskToDelete.worker === specialTasks.workerApprentice.targetWorker) {
+                // 修改：不清除 level，而是清除 targetWorker (設為預設 '1' 或空字串，依據需求；這裡設為 '1' 以符合原始預設)
+                specialTasks.workerApprentice.targetWorker = '1'; // 或設為 '' 如果要完全清除
+            }
+            if (taskToDelete.section === 'laboratory') {
+                specialTasks.labAssistant.level = '';
+            }
             
-            showLoader(); // 顯示載入提示
+            if (!account.collapsedSections) account.collapsedSections = {};
+            account.collapsedSections[sectionToExpand] = false; // 展開相關區塊
 
-            // 異步處理，確保提示優先顯示
-            setTimeout(() => {
-                const account = appData.accounts[accountName];
-                if (!account) {
-                    hideLoader();
-                    return;
-                }
+            account.tasks = account.tasks.filter(task => task.id !== taskId);
+            
+            saveData(appData);
 
-                const taskToDelete = account.tasks.find(task => task.id === taskId);
-                if (!taskToDelete) {
-                    hideLoader();
-                    return;
-                }
-
-                const sectionToExpand = taskToDelete.section;
-
-                // 清理相關特殊任務
-                const specialTasks = account.specialTasks;
-                if (taskToDelete.section === 'home-village' && taskToDelete.worker === specialTasks.workerApprentice.targetWorker) {
-                    specialTasks.workerApprentice.level = '';
-                }
-                if (taskToDelete.section === 'laboratory') {
-                    specialTasks.labAssistant.level = '';
-                }
+            const accountIndex = ACCOUNTS_CONFIG.findIndex(acc => acc.name === accountName);
+            if (accountIndex !== -1) {
+                currentAccountIndex = accountIndex;
                 
-                if (!account.collapsedSections) account.collapsedSections = {};
-                account.collapsedSections[sectionToExpand] = false; // 展開相關區塊
-
-                account.tasks = account.tasks.filter(task => task.id !== taskId);
+                // 手動執行導航和渲染，以更好地控制載入提示的隱藏時機
+                pages.forEach(p => p.classList.remove('active'));
+                const accountsPageElement = document.getElementById('accounts-page');
+                accountsPageElement.classList.add('active');
                 
-                saveData(appData);
+                renderAccountPages(ACCOUNTS_CONFIG, appData);
+                updateSlider();
 
-                const accountIndex = ACCOUNTS_CONFIG.findIndex(acc => acc.name === accountName);
-                if (accountIndex !== -1) {
-                    currentAccountIndex = accountIndex;
-                    
-                    // 手動執行導航和渲染，以更好地控制載入提示的隱藏時機
-                    pages.forEach(p => p.classList.remove('active'));
-                    const accountsPageElement = document.getElementById('accounts-page');
-                    accountsPageElement.classList.add('active');
-                    
-                    renderAccountPages(ACCOUNTS_CONFIG, appData);
-                    updateSlider();
-
-                    const scrollToAction = () => {
-                        const targetSlide = document.querySelector(`.account-page-slide[data-account-name="${accountName}"]`);
-                        if (targetSlide) {
-                            const targetSection = targetSlide.querySelector(`.input-section[data-section-id="${sectionToExpand}"]`);
-                            if (targetSection) {
-                                targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            }
+                const scrollToAction = () => {
+                    const targetSlide = document.querySelector(`.account-page-slide[data-account-name="${accountName}"]`);
+                    if (targetSlide) {
+                        const targetSection = targetSlide.querySelector(`.input-section[data-section-id="${sectionToExpand}"]`);
+                        if (targetSection) {
+                            targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         }
-                        // 在轉場和滾動都結束後才隱藏載入提示
-                        setTimeout(hideLoader, 100);
-                    };
-                    
-                    accountsPageElement.addEventListener('transitionend', scrollToAction, { once: true });
-                } else {
-                    hideLoader();
-                }
-            }, 50);
-        }
-    });
+                    }
+                    // 在轉場和滾動都結束後才隱藏載入提示
+                    setTimeout(hideLoader, 100);
+                };
+                
+                accountsPageElement.addEventListener('transitionend', scrollToAction, { once: true });
+            } else {
+                hideLoader();
+            }
+        }, 50);
+    }
+});
 
 
     document.getElementById('next-account').addEventListener('click', () => {
