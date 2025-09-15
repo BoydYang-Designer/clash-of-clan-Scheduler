@@ -554,7 +554,7 @@ accountsPage.addEventListener('input', e => {
                     const targetTask = account.tasks.find(t => t.id === specialTask.targetTaskId);
                     if (!targetTask) return;
 
-                    const deductionAmount = parseInt(specialTask.level, 10) * 30; // 每等級扣 30 分鐘
+                    const deductionAmount = parseInt(specialTask.level, 10) * 60; // 每等級扣 60 分鐘
                     if (deductionAmount <= 0) return;
 
                     targetTask.totalDeductedMinutes = (targetTask.totalDeductedMinutes || 0) + deductionAmount;
