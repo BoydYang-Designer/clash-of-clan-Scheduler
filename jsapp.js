@@ -130,7 +130,7 @@ function renderAccountPages(configs, data) {
                         </div>
                         <div class="worker-count-input">
                             <label>工人數：</label>
-                            <input type="number" class="worker-count" min="0" max="10" placeholder="0" data-account="${acc.name}" data-section="${sec.id}">
+                            <input type="number" class="worker-count" min="0" max="9" placeholder="0" data-account="${acc.name}" data-section="${sec.id}">
                         </div>
                         <div class="worker-rows-container"></div>
                     </div>
@@ -200,7 +200,8 @@ accountsPage.addEventListener('click', e => {
         }
     }
 });
-    function generateWorkerRows(container, count, accountName, sectionId) {
+function generateWorkerRows(container, count, accountName, sectionId) {
+    count = Math.min(count, 9);  // 新增這行，確保最多生成9個rows
     container.innerHTML = '';
     const accountTasks = appData.accounts[accountName].tasks.filter(t => t.section === sectionId);
 
@@ -439,15 +440,19 @@ accountsPage.addEventListener('input', e => {
 
     const sectionId = e.target.dataset.section;
 
-    if (e.target.classList.contains('worker-count')) {
-        const count = parseInt(e.target.value, 10) || 0;
-        const container = e.target.closest('.input-section').querySelector('.worker-rows-container');
-        if (!appData.accounts[accountName].workerCounts) appData.accounts[accountName].workerCounts = {};
-        appData.accounts[accountName].workerCounts[sectionId] = count;
-        
-        if (sectionId === 'home-village') {
-            updateWorkerApprenticeSelect(accountName);
-        }
+if (e.target.classList.contains('worker-count')) {
+    let count = parseInt(e.target.value, 10) || 0;
+    if (count > 9) {
+        e.target.value = 9;  // 立即修正輸入值為9
+        count = 9;
+    }
+    const container = e.target.closest('.input-section').querySelector('.worker-rows-container');
+    if (!appData.accounts[accountName].workerCounts) appData.accounts[accountName].workerCounts = {};
+    appData.accounts[accountName].workerCounts[sectionId] = count;
+    
+    if (sectionId === 'home-village') {
+        updateWorkerApprenticeSelect(accountName);
+    }
 
         saveData(appData);
         generateWorkerRows(container, count, accountName, sectionId);
@@ -558,6 +563,24 @@ accountsPage.addEventListener('input', e => {
         }
     });
     
+let scrollLeftBeforeFocus;
+accountsPage.addEventListener('focusin', (e) => {
+    if (e.target.classList.contains('task-input')) {  // 假設任務名稱輸入類別為 'task-input'
+        scrollLeftBeforeFocus = accountSlider.scrollLeft;
+    }
+});
+
+accountsPage.addEventListener('focusout', (e) => {
+    if (e.target.classList.contains('task-input')) {
+        setTimeout(() => {
+            if (accountSlider.scrollLeft !== scrollLeftBeforeFocus) {
+                accountSlider.scrollLeft = scrollLeftBeforeFocus;
+            }
+        }, 100);  // 延遲100ms確保鍵盤收起後執行
+    }
+});
+
+
     function init() {
         renderAccountPages(ACCOUNTS_CONFIG, appData);
         navigateTo('home-page');

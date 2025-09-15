@@ -170,6 +170,8 @@ body {
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
     scroll-snap-type: x mandatory;
+    overflow-x: hidden;  /* 改為 hidden 防止意外水平滾動 */
+    touch-action: pan-y;  /* 只允許垂直觸摸滾動，限制水平 */
 }
 
 .account-page-slide {
