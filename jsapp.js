@@ -8,7 +8,7 @@ const SECTIONS_CONFIG = [
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
-    // --- 帳號與區塊設定 ---（移除 SECTIONS_CONFIG，只保留 ACCOUNTS_CONFIG）
+    // --- 帳號設定 ---
     const ACCOUNTS_CONFIG = [
         { name: '路人甲', avatar: 'images/路人甲.png' },
         { name: '奇異果冰沙', avatar: 'images/奇異果冰沙.png' },
@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     // --- 全局狀態 ---
-    let appData = loadData(ACCOUNTS_CONFIG);  // 現在 loadData 可存取全域 SECTIONS_CONFIG
+    let appData = loadData(ACCOUNTS_CONFIG);
     let currentAccountIndex = 0;
 
     // --- DOM 元素 ---
@@ -26,9 +26,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const accountsPage = document.getElementById('accounts-page');
     const taskListContainer = document.getElementById('task-list');
     const accountSlider = document.querySelector('.account-slider-container');
-    const loadingOverlay = document.getElementById('loading-overlay'); // 【新增】
+    const loadingOverlay = document.getElementById('loading-overlay');
 
-    // --- 【新增】載入提示函式 ---
+    // --- 載入提示函式 ---
     function showLoader() {
         loadingOverlay.classList.add('visible');
     }
@@ -37,11 +37,10 @@ document.addEventListener('DOMContentLoaded', () => {
         loadingOverlay.classList.remove('visible');
     }
 
-    // --- 【修改】導航函數，整合載入提示 ---
+    // --- 導航函數 ---
     function navigateTo(pageId) {
         showLoader();
         
-        // 使用 setTimeout 確保載入提示有時間渲染出來
         setTimeout(() => {
             pages.forEach(p => p.classList.remove('active'));
             document.getElementById(pageId).classList.add('active');
@@ -49,18 +48,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (pageId === 'scheduler-page') {
                 renderScheduler(appData, SECTIONS_CONFIG);
             } else if (pageId === 'accounts-page') {
-                // 當切換到帳號頁時，重新渲染以確保資料最新
                 renderAccountPages(ACCOUNTS_CONFIG, appData);
                 updateSlider();
             }
             
-            // 延遲一點時間隱藏載入提示，讓頁面內容渲染完成
             setTimeout(hideLoader, 200);
         }, 50);
     }
 
-
-// --- 【修改】動態生成帳號頁面，移除頁尾按鈕 ---
+// --- 動態生成帳號頁面 ---
 function renderAccountPages(configs, data) {
     accountSlider.innerHTML = '';
     configs.forEach((acc, index) => {
@@ -70,24 +66,10 @@ function renderAccountPages(configs, data) {
         slide.dataset.accountName = acc.name;
 
         const accountData = data.accounts[acc.name];
-
-        const homeVillageTasks = accountData.tasks.filter(t => t.section === 'home-village');
-        const taskMap = {};
-        homeVillageTasks.forEach(task => {
-            taskMap[task.worker] = task.task || '(無任務)';
-        });
-        
-        const homeVillageWorkerCount = accountData.workerCounts['home-village'] || 0;
-        const specialTasks = accountData.specialTasks;
-        let workerOptions = '';
-        for(let i = 1; i <= homeVillageWorkerCount; i++) {
-            const workerId = `${i}`;
-            const taskName = taskMap[workerId] || '(無任務)';
-            workerOptions += `<option value="${workerId}" ${specialTasks.workerApprentice.targetWorker === workerId ? 'selected' : ''}>${workerId} - ${taskName}</option>`;
-        }
-
+        const specialTasks = accountData.specialTasks || {};
         const specialCollapsed = accountData.collapsedSections['special-tasks'] || true;
-
+        
+        // 【修改】特殊任務區塊的 HTML，包含開始時間
         const specialTasksHtml = `
             <div class="special-tasks-container">
                 <div class="input-section ${specialCollapsed ? 'collapsed' : ''}" data-section-id="special-tasks" data-account="${acc.name}">
@@ -96,16 +78,30 @@ function renderAccountPages(configs, data) {
                     </div>
                     <div class="input-section-body">
                         <div class="special-task-block">
-                            <label>工人學徒等級:</label>
-                            <input type="number" class="special-task-input" data-account="${acc.name}" data-special-task="workerApprentice" value="${specialTasks.workerApprentice.level || ''}">
-                            <select class="special-task-select apprentice-target-worker" data-account="${acc.name}" data-special-task="workerApprenticeTarget">
-                                ${workerOptions}
+                            <label>工人學徒</label>
+                            <div class="special-task-row">
+                                <span>等級:</span>
+                                <input type="number" class="special-task-input" data-account="${acc.name}" data-special-task="workerApprentice" value="${specialTasks.workerApprentice?.level || ''}" placeholder="Lv">
+                                <span>開始:</span>
+                                <input type="time" class="special-task-time-input" data-account="${acc.name}" data-special-task="workerApprentice" value="${specialTasks.workerApprentice?.startTime || '15:00'}">
+                            </div>
+                            <label>指定任務 (大本營):</label>
+                            <select class="special-task-select" data-account="${acc.name}" data-special-task="workerApprenticeTarget">
+                                <option value="">-- 未指派 --</option>
                             </select>
                         </div>
-
-                        <div class="special-task-row">
-                            <label>實驗助手等級:</label>
-                            <input type="number" class="special-task-input" data-account="${acc.name}" data-special-task="labAssistant" value="${specialTasks.labAssistant.level || ''}">
+                        <div class="special-task-block">
+                            <label>實驗助手</label>
+                             <div class="special-task-row">
+                                <span>等級:</span>
+                                <input type="number" class="special-task-input" data-account="${acc.name}" data-special-task="labAssistant" value="${specialTasks.labAssistant?.level || ''}" placeholder="Lv">
+                                <span>開始:</span>
+                                <input type="time" class="special-task-time-input" data-account="${acc.name}" data-special-task="labAssistant" value="${specialTasks.labAssistant?.startTime || '15:00'}">
+                            </div>
+                            <label>指定任務 (實驗室):</label>
+                            <select class="special-task-select" data-account="${acc.name}" data-special-task="labAssistantTarget">
+                                <option value="">-- 未指派 --</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -137,12 +133,11 @@ function renderAccountPages(configs, data) {
                 </div>
             `;
 
-            if (sec.id === 'laboratory') {
+            if (sec.id === 'home-village') {
                 sectionsHtml += specialTasksHtml;
             }
         });
 
-         // 【修改】移除 slide 內部獨立的頁尾按鈕
          slide.innerHTML = `
             <div class="account-header">
                 <img src="${acc.avatar}" alt="${acc.name} 頭像" class="account-avatar">
@@ -153,31 +148,37 @@ function renderAccountPages(configs, data) {
             </div>
         `;
         accountSlider.appendChild(slide);
+
+        // 動態填充特殊任務的下拉選單
+        updateTaskTargetSelect(acc.name, 'workerApprenticeTarget', 'home-village');
+        updateTaskTargetSelect(acc.name, 'labAssistantTarget', 'laboratory');
     });
 
     restoreInputsFromData(data);
 }
 
-function updateWorkerApprenticeSelect(accountName) {
-    const select = document.querySelector(`.account-page-slide[data-account-name="${accountName}"] .apprentice-target-worker`);
+/**
+ * 【新增】更新特殊任務的目標下拉選單
+ * @param {string} accountName - 帳號名稱
+ * @param {string} specialTaskType - 特殊任務類型 (e.g., 'workerApprenticeTarget')
+ * @param {string} sourceSectionId - 任務來源的區塊 ID (e.g., 'home-village')
+ */
+function updateTaskTargetSelect(accountName, specialTaskType, sourceSectionId) {
+    const selector = `.account-page-slide[data-account-name="${accountName}"] .special-task-select[data-special-task="${specialTaskType}"]`;
+    const select = document.querySelector(selector);
     if (!select) return;
 
-    const homeVillageTasks = appData.accounts[accountName].tasks.filter(t => t.section === 'home-village');
-    const taskMap = {};
-    homeVillageTasks.forEach(task => {
-        taskMap[task.worker] = task.task || '(無任務)';
+    const relevantTasks = appData.accounts[accountName].tasks.filter(t => t.section === sourceSectionId && t.task);
+    const specialTaskKey = specialTaskType.replace('Target', '');
+    const currentTargetId = appData.accounts[accountName].specialTasks[specialTaskKey]?.targetTaskId || '';
+    
+    let taskOptions = '<option value="">-- 未指派 --</option>';
+    relevantTasks.forEach(task => {
+        const selected = task.id === currentTargetId ? 'selected' : '';
+        taskOptions += `<option value="${task.id}" ${selected}>工人 ${task.worker} - ${task.task}</option>`;
     });
 
-    const homeVillageWorkerCount = appData.accounts[accountName].workerCounts['home-village'] || 0;
-    let workerOptions = '';
-    for (let i = 1; i <= homeVillageWorkerCount; i++) {
-        const workerId = `${i}`;
-        const taskName = taskMap[workerId] || '(無任務)';
-        const selected = appData.accounts[accountName].specialTasks.workerApprentice.targetWorker === workerId ? 'selected' : '';
-        workerOptions += `<option value="${workerId}" ${selected}>${workerId} - ${taskName}</option>`;
-    }
-
-    select.innerHTML = workerOptions;
+    select.innerHTML = taskOptions;
 }
 
 accountsPage.addEventListener('click', e => {
@@ -193,15 +194,11 @@ accountsPage.addEventListener('click', e => {
             }
             appData.accounts[accountName].collapsedSections[sectionId] = !isCurrentlyCollapsed;
             saveData(appData);
-            
-            if (sectionId === 'home-village' || (sectionId === 'special-tasks' && isCurrentlyCollapsed)) {
-                 updateWorkerApprenticeSelect(accountName);
-            }
         }
     }
 });
 function generateWorkerRows(container, count, accountName, sectionId) {
-    count = Math.min(count, 9);  // 新增這行，確保最多生成9個rows
+    count = Math.min(count, 9);
     container.innerHTML = '';
     const accountTasks = appData.accounts[accountName].tasks.filter(t => t.section === sectionId);
 
@@ -213,23 +210,7 @@ function generateWorkerRows(container, count, accountName, sectionId) {
         let durationString = '';
         let durationColor = 'black';
 
-        if (existingTask && existingTask.duration && existingTask.entryTimestamp) {
-            const originalMinutes = (existingTask.duration.days || 0) * 1440 +
-                                  (existingTask.duration.hours || 0) * 60 +
-                                  (existingTask.duration.minutes || 0);
-            
-            if (originalMinutes > 0) {
-                const elapsedMinutes = (Date.now() - existingTask.entryTimestamp) / (1000 * 60);
-                const remainingMinutes = Math.max(0, originalMinutes - elapsedMinutes);
-
-                const days = Math.floor(remainingMinutes / 1440);
-                const hours = Math.floor((remainingMinutes % 1440) / 60);
-                const minutes = Math.round(remainingMinutes % 60);
-
-                durationString = `${days}-${hours}-${minutes}`;
-                durationColor = 'blue';
-            }
-        } else if (existingTask && existingTask.duration) {
+        if (existingTask && existingTask.duration) {
             const d = existingTask.duration;
             if (d.days > 0 || d.hours > 0 || d.minutes > 0) {
                durationString = `${d.days || 0}-${d.hours || 0}-${d.minutes || 0}`;
@@ -284,126 +265,94 @@ function generateWorkerRows(container, count, accountName, sectionId) {
         });
     }
 
-    function applySpecialReductions(originalMinutes, accountName, sectionId, workerId) {
-        if (originalMinutes <= 0) return originalMinutes;
-
-        const specialTasks = appData.accounts[accountName].specialTasks;
-        let reductionMinutes = 0;
-
-        const originalDays = originalMinutes / (24 * 60);
-        const baseDays = Math.ceil(originalDays);
-
-        const labAssistantLevel = parseInt(specialTasks.labAssistant.level, 10);
-        if (sectionId === 'laboratory' && labAssistantLevel > 0) {
-            reductionMinutes += baseDays * labAssistantLevel * 60;
-        }
-
-        const apprenticeLevel = parseInt(specialTasks.workerApprentice.level, 10);
-        const targetWorker = specialTasks.workerApprentice.targetWorker;
-        if (sectionId === 'home-village' && workerId === targetWorker && apprenticeLevel > 0) {
-            reductionMinutes += baseDays * apprenticeLevel * 60;
-        }
-
-        return Math.max(0, originalMinutes - reductionMinutes);
-    }
-
     function handleTaskInputChange(row, accountName, sectionId, workerId, taskId, shouldSave = true) {
-    const taskInput = row.querySelector('.task-input').value.trim();
-    const durationInput = row.querySelector('.duration-combined').value;
-    const completionTimeDiv = row.querySelector('.completion-time');
+        const taskInput = row.querySelector('.task-input').value.trim();
+        const durationInput = row.querySelector('.duration-combined').value;
+        const completionTimeDiv = row.querySelector('.completion-time');
 
-    let task = appData.accounts[accountName].tasks.find(t => t.id === taskId);
+        let task = appData.accounts[accountName].tasks.find(t => t.id === taskId);
 
-    const parts = durationInput.split('-').map(p => p.trim());
-    const durationDays = parseInt(parts[0], 10) || 0;
-    const durationHours = parseInt(parts[1], 10) || 0;
-    const durationMinutes = parseInt(parts[2], 10) || 0;
-    const totalDurationInMinutes = (durationDays * 24 * 60) + (durationHours * 60) + durationMinutes;
+        const parts = durationInput.split('-').map(p => p.trim());
+        const durationDays = parseInt(parts[0], 10) || 0;
+        const durationHours = parseInt(parts[1], 10) || 0;
+        const durationMinutes = parseInt(parts[2], 10) || 0;
+        const totalDurationInMinutes = (durationDays * 24 * 60) + (durationHours * 60) + durationMinutes;
 
-    let entryTimestamp = task?.entryTimestamp || null;
-    const hasNewDuration = totalDurationInMinutes > 0;
-    const oldDurationInMinutes = task?.duration ? (task.duration.days * 1440) + (task.duration.hours * 60) + task.duration.minutes : 0;
+        let entryTimestamp = task?.entryTimestamp || null;
+        const hasNewDuration = totalDurationInMinutes > 0;
+        const oldDurationInMinutes = task?.duration ? (task.duration.days * 1440) + (task.duration.hours * 60) + task.duration.minutes : 0;
 
-    if (shouldSave && hasNewDuration && totalDurationInMinutes !== oldDurationInMinutes) {
-        entryTimestamp = Date.now();
-    }
-    
-    if (!hasNewDuration) {
-        entryTimestamp = null;
-    }
-
-    const finalDurationInMinutes = applySpecialReductions(totalDurationInMinutes, accountName, sectionId, workerId);
-    
-    const completionTime = calculateCompletionTime(entryTimestamp, finalDurationInMinutes);
-    completionTimeDiv.textContent = completionTime || 'N/A';
-
-    if (shouldSave) {
-        if (!task) {
-            if (taskInput || hasNewDuration) {
-                task = { id: taskId, section: sectionId, worker: workerId };
-                appData.accounts[accountName].tasks.push(task);
-            } else {
-                return;
-            }
+        if (shouldSave && hasNewDuration && totalDurationInMinutes !== oldDurationInMinutes) {
+            entryTimestamp = Date.now();
         }
-
-        task.task = taskInput;
-        task.duration = { days: durationDays, hours: durationHours, minutes: durationMinutes };
-        task.entryTimestamp = entryTimestamp;
-        task.completion = completionTime;
         
-        if (!task.task && !hasNewDuration) {
-            appData.accounts[accountName].tasks = appData.accounts[accountName].tasks.filter(t => t.id !== taskId);
+        if (!hasNewDuration) {
+            entryTimestamp = null;
         }
 
-        saveData(appData);
+        const totalDeductedMinutes = task?.totalDeductedMinutes || 0;
+        const completionResult = calculateCompletionTime(entryTimestamp, totalDurationInMinutes, totalDeductedMinutes);
         
-        if (sectionId === 'home-village') {
-            updateWorkerApprenticeSelect(accountName);
+        let completionHtml = completionResult.time;
+        if (completionResult.deductions > 0) {
+            completionHtml += ` <span class="deduction-note">(已扣除: ${completionResult.deductions} 分鐘)</span>`;
+        }
+        completionTimeDiv.innerHTML = completionHtml;
+
+        if (shouldSave) {
+            if (!task) {
+                if (taskInput || hasNewDuration) {
+                    task = { id: taskId, section: sectionId, worker: workerId, totalDeductedMinutes: 0 };
+                    appData.accounts[accountName].tasks.push(task);
+                } else {
+                    return;
+                }
+            }
+
+            task.task = taskInput;
+            task.duration = { days: durationDays, hours: durationHours, minutes: durationMinutes };
+            task.entryTimestamp = entryTimestamp;
+            task.completion = completionResult.time;
+            
+            if (!task.task && !hasNewDuration) {
+                appData.accounts[accountName].tasks = appData.accounts[accountName].tasks.filter(t => t.id !== taskId);
+            }
+
+            saveData(appData);
+            
+            updateTaskTargetSelect(accountName, 'workerApprenticeTarget', 'home-village');
+            updateTaskTargetSelect(accountName, 'labAssistantTarget', 'laboratory');
         }
     }
-}
 
-function calculateCompletionTime(entryTimestamp, finalDurationInMinutes) {
-    if (!entryTimestamp || finalDurationInMinutes <= 0) {
-        return 'N/A';
+    /**
+     * 【修改】計算完成時間並回傳包含註記的物件
+     */
+    function calculateCompletionTime(entryTimestamp, totalDurationInMinutes, totalDeductedMinutes = 0) {
+        if (!entryTimestamp || totalDurationInMinutes <= 0) {
+            return { time: 'N/A', deductions: 0 };
+        }
+
+        const finalDurationInMinutes = totalDurationInMinutes - totalDeductedMinutes;
+        if (finalDurationInMinutes <= 0) {
+            return { time: '已完成', deductions: totalDeductedMinutes };
+        }
+
+        const completionDate = new Date(entryTimestamp);
+        completionDate.setMinutes(completionDate.getMinutes() + finalDurationInMinutes);
+
+        const year = completionDate.getFullYear();
+        const month = (completionDate.getMonth() + 1).toString().padStart(2, '0');
+        const day = completionDate.getDate().toString().padStart(2, '0');
+        const hours = completionDate.getHours().toString().padStart(2, '0');
+        const minutes = completionDate.getMinutes().toString().padStart(2, '0');
+
+        return {
+            time: `${year}/${month}/${day} ${hours}:${minutes}`,
+            deductions: totalDeductedMinutes
+        };
     }
-
-    const completionDate = new Date(entryTimestamp);
-    completionDate.setMinutes(completionDate.getMinutes() + finalDurationInMinutes);
-
-    const year = completionDate.getFullYear();
-    const month = (completionDate.getMonth() + 1).toString().padStart(2, '0');
-    const day = completionDate.getDate().toString().padStart(2, '0');
-    const hours = completionDate.getHours().toString().padStart(2, '0');
-    const minutes = completionDate.getMinutes().toString().padStart(2, '0');
-
-    return `${year}/${month}/${day} ${hours}:${minutes}`;
-}
     
-    function recalculateDependentTasks(accountName) {
-        const slide = document.querySelector(`.account-page-slide[data-account-name="${accountName}"]`);
-        if (!slide) return;
-
-        const labRows = slide.querySelectorAll(`.worker-row[data-section-id="laboratory"]`);
-        labRows.forEach(row => {
-            const workerId = row.dataset.workerId;
-            const task = appData.accounts[accountName].tasks.find(t => t.section === 'laboratory' && t.worker === workerId);
-            if (task) {
-                handleTaskInputChange(row, accountName, 'laboratory', workerId, task.id, true);
-            }
-        });
-
-        const targetWorker = appData.accounts[accountName].specialTasks.workerApprentice.targetWorker;
-        const apprenticeRow = slide.querySelector(`.worker-row[data-section-id="home-village"][data-worker-id="${targetWorker}"]`);
-        if (apprenticeRow) {
-            const task = appData.accounts[accountName].tasks.find(t => t.section === 'home-village' && t.worker === targetWorker);
-            if(task) {
-                handleTaskInputChange(apprenticeRow, accountName, 'home-village', targetWorker, task.id, true);
-            }
-        }
-    }
-
     function updateSlider() {
         accountSlider.scrollLeft = currentAccountIndex * accountSlider.clientWidth;
         document.getElementById('account-indicator').textContent = `${currentAccountIndex + 1} / ${ACCOUNTS_CONFIG.length}`;
@@ -413,7 +362,6 @@ function calculateCompletionTime(entryTimestamp, finalDurationInMinutes) {
     document.getElementById('go-to-scheduler-from-home').addEventListener('click', () => navigateTo('scheduler-page'));
     document.getElementById('go-to-accounts-from-home').addEventListener('click', () => navigateTo('accounts-page'));
     
-    // 【修改】此監聽器現在會處理固定頁尾中的按鈕
     document.body.addEventListener('click', e => {
         if (e.target.classList.contains('go-to-scheduler-from-accounts')) {
             navigateTo('scheduler-page');
@@ -434,121 +382,120 @@ function calculateCompletionTime(entryTimestamp, finalDurationInMinutes) {
         URL.revokeObjectURL(url);
     });
 
+    // 【新增】匯入 JSON 功能的事件監聽
+    const importJsonBtn = document.getElementById('import-json-btn');
+    const importFileInput = document.getElementById('import-file-input');
+
+    importJsonBtn.addEventListener('click', () => {
+        importFileInput.click();
+    });
+
+    importFileInput.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (!confirm('此操作會覆蓋所有現有設定，並重新載入頁面。您確定要繼續嗎？')) {
+            event.target.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                if (importedData && importedData.accounts) {
+                    saveData(importedData);
+                    alert('匯入成功！應用程式將會重新載入。');
+                    window.location.reload();
+                } else {
+                    alert('匯入失敗：無效的 JSON 檔案格式。');
+                }
+            } catch (error) {
+                alert(`匯入失敗： ${error.message}`);
+            } finally {
+                event.target.value = '';
+            }
+        };
+        reader.readAsText(file);
+    });
+
 accountsPage.addEventListener('input', e => {
     const accountName = e.target.dataset.account;
     if (!accountName) return;
 
     const sectionId = e.target.dataset.section;
 
-if (e.target.classList.contains('worker-count')) {
-    let count = parseInt(e.target.value, 10) || 0;
-    if (count > 9) {
-        e.target.value = 9;  // 立即修正輸入值為9
-        count = 9;
-    }
-    const container = e.target.closest('.input-section').querySelector('.worker-rows-container');
-    if (!appData.accounts[accountName].workerCounts) appData.accounts[accountName].workerCounts = {};
-    appData.accounts[accountName].workerCounts[sectionId] = count;
-    
-    if (sectionId === 'home-village') {
-        updateWorkerApprenticeSelect(accountName);
-    }
-
+    if (e.target.classList.contains('worker-count')) {
+        let count = parseInt(e.target.value, 10) || 0;
+        if (count > 9) {
+            e.target.value = 9;
+            count = 9;
+        }
+        const container = e.target.closest('.input-section').querySelector('.worker-rows-container');
+        appData.accounts[accountName].workerCounts[sectionId] = count;
         saveData(appData);
         generateWorkerRows(container, count, accountName, sectionId);
     } else if (e.target.classList.contains('level-input')) {
-        if (!appData.accounts[accountName].levels) appData.accounts[accountName].levels = {};
         appData.accounts[accountName].levels[sectionId] = e.target.value;
         saveData(appData);
     } else if (e.target.classList.contains('special-task-input')) {
         const taskType = e.target.dataset.specialTask;
-        if (taskType === 'labAssistant') {
-            appData.accounts[accountName].specialTasks.labAssistant.level = e.target.value;
-        } else if (taskType === 'workerApprentice') {
-            appData.accounts[accountName].specialTasks.workerApprentice.level = e.target.value;
-        }
+        appData.accounts[accountName].specialTasks[taskType].level = e.target.value;
         saveData(appData);
-        recalculateDependentTasks(accountName);
+    } else if (e.target.classList.contains('special-task-time-input')) {
+        const taskType = e.target.dataset.specialTask;
+        appData.accounts[accountName].specialTasks[taskType].startTime = e.target.value;
+        saveData(appData);
     } else if (e.target.classList.contains('special-task-select')) {
-        appData.accounts[accountName].specialTasks.workerApprentice.targetWorker = e.target.value;
+        const taskType = e.target.dataset.specialTask.replace('Target', '');
+        appData.accounts[accountName].specialTasks[taskType].targetTaskId = e.target.value;
         saveData(appData);
-        recalculateDependentTasks(accountName);
-        updateWorkerApprenticeSelect(accountName);
     }
 });
-    // --- 【修改】刪除任務的事件監聽，整合載入提示 ---
-taskListContainer.addEventListener('click', (e) => {
-    const deleteButton = e.target.closest('.btn-delete');
-    if (deleteButton) {
-        const accountName = deleteButton.dataset.account;
-        const taskId = deleteButton.dataset.taskId;
-        
-        showLoader(); // 顯示載入提示
 
-        // 異步處理，確保提示優先顯示
-        setTimeout(() => {
-            const account = appData.accounts[accountName];
-            if (!account) {
-                hideLoader();
-                return;
-            }
-
-            const taskToDelete = account.tasks.find(task => task.id === taskId);
-            if (!taskToDelete) {
-                hideLoader();
-                return;
-            }
-
-            const sectionToExpand = taskToDelete.section;
-
-            // 清理相關特殊任務
-            const specialTasks = account.specialTasks;
-            if (taskToDelete.section === 'home-village' && taskToDelete.worker === specialTasks.workerApprentice.targetWorker) {
-                // 修改：不清除 level，而是清除 targetWorker (設為預設 '1' 或空字串，依據需求；這裡設為 '1' 以符合原始預設)
-                specialTasks.workerApprentice.targetWorker = '1'; // 或設為 '' 如果要完全清除
-            }
-            if (taskToDelete.section === 'laboratory') {
-                specialTasks.labAssistant.level = '';
-            }
+    taskListContainer.addEventListener('click', (e) => {
+        const deleteButton = e.target.closest('.btn-delete');
+        if (deleteButton) {
+            const accountName = deleteButton.dataset.account;
+            const taskId = deleteButton.dataset.taskId;
             
-            if (!account.collapsedSections) account.collapsedSections = {};
-            account.collapsedSections[sectionToExpand] = false; // 展開相關區塊
+            showLoader();
 
-            account.tasks = account.tasks.filter(task => task.id !== taskId);
-            
-            saveData(appData);
+            setTimeout(() => {
+                const account = appData.accounts[accountName];
+                if (!account) { hideLoader(); return; }
 
-            const accountIndex = ACCOUNTS_CONFIG.findIndex(acc => acc.name === accountName);
-            if (accountIndex !== -1) {
-                currentAccountIndex = accountIndex;
-                
-                // 手動執行導航和渲染，以更好地控制載入提示的隱藏時機
-                pages.forEach(p => p.classList.remove('active'));
-                const accountsPageElement = document.getElementById('accounts-page');
-                accountsPageElement.classList.add('active');
-                
-                renderAccountPages(ACCOUNTS_CONFIG, appData);
-                updateSlider();
-
-                const scrollToAction = () => {
-                    const targetSlide = document.querySelector(`.account-page-slide[data-account-name="${accountName}"]`);
-                    if (targetSlide) {
-                        const targetSection = targetSlide.querySelector(`.input-section[data-section-id="${sectionToExpand}"]`);
-                        if (targetSection) {
-                            targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }
+                // 【修改】如果刪除的任務被特殊任務指定，則清空指定
+                if (account.specialTasks) {
+                    if (account.specialTasks.labAssistant?.targetTaskId === taskId) {
+                        account.specialTasks.labAssistant.targetTaskId = '';
                     }
-                    // 在轉場和滾動都結束後才隱藏載入提示
-                    setTimeout(hideLoader, 100);
-                };
+                    if (account.specialTasks.workerApprentice?.targetTaskId === taskId) {
+                        account.specialTasks.workerApprentice.targetTaskId = '';
+                    }
+                }
+
+                const taskToDelete = account.tasks.find(task => task.id === taskId);
+                if (!taskToDelete) { hideLoader(); return; }
                 
-                accountsPageElement.addEventListener('transitionend', scrollToAction, { once: true });
-            } else {
-                hideLoader();
-            }
-        }, 50);
-    }
-});
+                const sectionToExpand = taskToDelete.section;
+                if (!account.collapsedSections) account.collapsedSections = {};
+                account.collapsedSections[sectionToExpand] = false;
+
+                account.tasks = account.tasks.filter(task => task.id !== taskId);
+                
+                saveData(appData);
+
+                const accountIndex = ACCOUNTS_CONFIG.findIndex(acc => acc.name === accountName);
+                if (accountIndex !== -1) {
+                    currentAccountIndex = accountIndex;
+                    navigateTo('accounts-page'); // 導航會自動處理渲染和 loader
+                } else {
+                    hideLoader();
+                }
+            }, 50);
+        }
+    });
 
 
     document.getElementById('next-account').addEventListener('click', () => {
@@ -564,103 +511,82 @@ taskListContainer.addEventListener('click', (e) => {
         }
     });
     
-let scrollLeftBeforeFocus;
-accountsPage.addEventListener('focusin', (e) => {
-    if (e.target.classList.contains('task-input')) {  // 假設任務名稱輸入類別為 'task-input'
-        scrollLeftBeforeFocus = accountSlider.scrollLeft;
-    }
-});
+    let scrollLeftBeforeFocus;
+    accountsPage.addEventListener('focusin', (e) => {
+        if (e.target.classList.contains('task-input')) {
+            scrollLeftBeforeFocus = accountSlider.scrollLeft;
+        }
+    });
 
-accountsPage.addEventListener('focusout', (e) => {
-    if (e.target.classList.contains('task-input')) {
-        setTimeout(() => {
-            if (accountSlider.scrollLeft !== scrollLeftBeforeFocus) {
-                accountSlider.scrollLeft = scrollLeftBeforeFocus;
+    accountsPage.addEventListener('focusout', (e) => {
+        if (e.target.classList.contains('task-input')) {
+            setTimeout(() => {
+                if (accountSlider.scrollLeft !== scrollLeftBeforeFocus) {
+                    accountSlider.scrollLeft = scrollLeftBeforeFocus;
+                }
+            }, 100);
+        }
+    });
+
+    /**
+     * 【新增】檢查並執行特殊任務的每日時間扣除
+     */
+    function checkAndApplySpecialTaskDeductions() {
+        const now = new Date();
+        const todayStr = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
+        const deductionRecords = JSON.parse(localStorage.getItem('dailyDeductionRecords')) || {};
+        let dataChanged = false;
+
+        Object.keys(appData.accounts).forEach(accountName => {
+            const account = appData.accounts[accountName];
+            if (!account.specialTasks) return;
+
+            ['workerApprentice', 'labAssistant'].forEach(specialTaskType => {
+                const specialTask = account.specialTasks[specialTaskType];
+
+                if (!specialTask || !specialTask.level || !specialTask.targetTaskId || !specialTask.startTime) return;
+
+                const recordKey = `${accountName}-${specialTask.targetTaskId}-${specialTaskType}`;
+                if (deductionRecords[recordKey] === todayStr) return;
+
+                const [startHours, startMinutes] = specialTask.startTime.split(':').map(Number);
+                if (now.getHours() > startHours || (now.getHours() === startHours && now.getMinutes() >= startMinutes)) {
+                    const targetTask = account.tasks.find(t => t.id === specialTask.targetTaskId);
+                    if (!targetTask) return;
+
+                    const deductionAmount = parseInt(specialTask.level, 10) * 30; // 每等級扣 30 分鐘
+                    if (deductionAmount <= 0) return;
+
+                    targetTask.totalDeductedMinutes = (targetTask.totalDeductedMinutes || 0) + deductionAmount;
+
+                    deductionRecords[recordKey] = todayStr;
+                    dataChanged = true;
+                }
+            });
+        });
+
+        if (dataChanged) {
+            localStorage.setItem('dailyDeductionRecords', JSON.stringify(deductionRecords));
+            saveData(appData);
+            // 如果剛好在帳號頁，需要重新渲染以更新時間
+            if (document.getElementById('accounts-page').classList.contains('active')) {
+                renderAccountPages(ACCOUNTS_CONFIG, appData);
+                updateSlider();
             }
-        }, 100);  // 延遲100ms確保鍵盤收起後執行
+        }
     }
-});
-
+    
+    function setAppHeight() {
+        document.getElementById('app-container').style.height = `${window.innerHeight}px`;
+    }
 
     function init() {
         renderAccountPages(ACCOUNTS_CONFIG, appData);
+        checkAndApplySpecialTaskDeductions(); // 啟動時檢查一次
         navigateTo('home-page');
-            loadState();
-    loadSchedulerState();
-    checkAndApplySpecialTaskDeductions();
+        window.addEventListener('resize', setAppHeight);
+        setAppHeight();
     }
 
     init();
 });
-
-/**
- * Checks for and applies special task deductions based on the current date and time.
- * This function handles multi-day deductions if the user hasn't logged in for a while.
- */
-function checkAndApplySpecialTaskDeductions() {
-    const now = new Date();
-    const today = formatDate(now);
-    const lastDeductionRecords = JSON.parse(localStorage.getItem('specialTaskDeductions')) || {};
-    let changed = false;
-
-    // Only run if it's after 3 PM
-    if (now.getHours() >= 15) {
-        state.taskData.forEach(task => {
-            if (task.section === 'special-tasks' && task.assignedTo && task.totalHours > 0) {
-                const lastDeductionDateStr = lastDeductionRecords[task.id];
-                const lastDeductionDate = lastDeductionDateStr ? new Date(lastDeductionDateStr) : new Date(task.assignedDate);
-
-                const oneDay = 24 * 60 * 60 * 1000;
-                let daysToDeduct = 0;
-
-                // Handle initial assignment date if it's today
-                if (!lastDeductionDateStr) {
-                    const assignedDate = new Date(task.assignedDate);
-                    // Check if assigned today before 3 PM
-                    if (formatDate(assignedDate) === today && assignedDate.getHours() < 15) {
-                        daysToDeduct = 1;
-                    }
-                } else {
-                    // Calculate days passed since last deduction
-                    let currentDate = new Date(lastDeductionDate.getTime() + oneDay);
-                    while (formatDate(currentDate) <= today) {
-                        // Only count days that passed 3 PM
-                        if (currentDate.getHours() >= 15 || formatDate(currentDate) !== lastDeductionDateStr) {
-                            daysToDeduct++;
-                        }
-                        currentDate.setTime(currentDate.getTime() + oneDay);
-                    }
-                }
-                
-                if (daysToDeduct > 0) {
-                    const hoursToDeduct = task.level * daysToDeduct;
-                    task.totalHours = Math.max(0, task.totalHours - hoursToDeduct);
-                    console.log(`Deducted ${hoursToDeduct} hours for task ${task.id} over ${daysToDeduct} day(s). New total: ${task.totalHours}`);
-                    lastDeductionRecords[task.id] = today;
-                    changed = true;
-                }
-            }
-        });
-        
-        if (changed) {
-            localStorage.setItem('specialTaskDeductions', JSON.stringify(lastDeductionRecords));
-            saveState(); // Update the main app state
-            renderAccountTasks();
-            renderScheduler();
-        }
-    }
-}
-
-// 處理行動裝置鍵盤彈出時的畫面高度問題
-const appContainer = document.getElementById('app-container');
-
-function setAppHeight() {
-    // 使用 window.innerHeight 來取得包含鍵盤的正確可視高度
-    appContainer.style.height = `${window.innerHeight}px`;
-}
-
-// 頁面載入和視窗大小改變時都重新計算高度
-window.addEventListener('resize', setAppHeight);
-
-// 初始載入時先設定一次
-setAppHeight();
