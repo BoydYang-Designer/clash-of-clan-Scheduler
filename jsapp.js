@@ -49,16 +49,14 @@ function renderAccountPages(configs, data) {
         const accountData = data.accounts[acc.name];
 
         const homeVillageTasks = accountData.tasks.filter(t => t.section === 'home-village');
-        const taskMap = {}; 
+        const taskMap = {};
         homeVillageTasks.forEach(task => {
             taskMap[task.worker] = task.task || '(無任務)';
         });
         
-        // 【修改】根據大本營的工人數動態決定選項數量
         const homeVillageWorkerCount = accountData.workerCounts['home-village'] || 0;
         const specialTasks = accountData.specialTasks;
         let workerOptions = '';
-        // 【修改】迴圈上限改為 homeVillageWorkerCount
         for(let i = 1; i <= homeVillageWorkerCount; i++) {
             const workerId = `${i}`;
             const taskName = taskMap[workerId] || '(無任務)';
@@ -94,7 +92,7 @@ function renderAccountPages(configs, data) {
         let sectionsHtml = '';
         SECTIONS_CONFIG.forEach(sec => {
             const savedLevel = accountData.levels[sec.id] || sec.defaultLevel;
-            const isCollapsed = accountData.collapsedSections[sec.id] || true;
+            const isCollapsed = accountData.collapsedSections[sec.id];
             sectionsHtml += `
                 <div class="input-section ${isCollapsed ? 'collapsed' : ''}" data-section-id="${sec.id}" data-account="${acc.name}">
                     <div class="section-header">
@@ -149,10 +147,8 @@ function updateWorkerApprenticeSelect(accountName) {
         taskMap[task.worker] = task.task || '(無任務)';
     });
 
-    // 【修改】根據大本營的工人數動態決定選項數量
     const homeVillageWorkerCount = appData.accounts[accountName].workerCounts['home-village'] || 0;
     let workerOptions = '';
-    // 【修改】迴圈上限改為 homeVillageWorkerCount
     for (let i = 1; i <= homeVillageWorkerCount; i++) {
         const workerId = `${i}`;
         const taskName = taskMap[workerId] || '(無任務)';
@@ -163,12 +159,7 @@ function updateWorkerApprenticeSelect(accountName) {
     select.innerHTML = workerOptions;
 }
 
-accountsPage.addEventListener('input', e => {
-    // ... 原有 input 邏輯保持不變 ...
-});
-
 accountsPage.addEventListener('click', e => {
-    // 【修改】移除 .go-to-scheduler-btn 的事件監聽，因為按鈕已移到頁尾
     if (e.target.closest('.section-title')) {
         const section = e.target.closest('.input-section');
         if (section) {
@@ -182,7 +173,6 @@ accountsPage.addEventListener('click', e => {
             appData.accounts[accountName].collapsedSections[sectionId] = !isCurrentlyCollapsed;
             saveData(appData);
             
-            // 【修改】當大本營工人數改變時，也要更新工人學徒選單
             if (sectionId === 'home-village' || (sectionId === 'special-tasks' && isCurrentlyCollapsed)) {
                  updateWorkerApprenticeSelect(accountName);
             }
@@ -199,7 +189,25 @@ accountsPage.addEventListener('click', e => {
         const taskId = existingTask ? existingTask.id : `${accountName}-${sectionId}-${workerId}-${Date.now()}`;
         
         let durationString = '';
-        if (existingTask && existingTask.duration) {
+        let durationColor = 'black';
+
+        if (existingTask && existingTask.duration && existingTask.entryTimestamp) {
+            const originalMinutes = (existingTask.duration.days || 0) * 1440 +
+                                  (existingTask.duration.hours || 0) * 60 +
+                                  (existingTask.duration.minutes || 0);
+            
+            if (originalMinutes > 0) {
+                const elapsedMinutes = (Date.now() - existingTask.entryTimestamp) / (1000 * 60);
+                const remainingMinutes = Math.max(0, originalMinutes - elapsedMinutes);
+
+                const days = Math.floor(remainingMinutes / 1440);
+                const hours = Math.floor((remainingMinutes % 1440) / 60);
+                const minutes = Math.round(remainingMinutes % 60);
+
+                durationString = `${days}-${hours}-${minutes}`;
+                durationColor = 'blue';
+            }
+        } else if (existingTask && existingTask.duration) {
             const d = existingTask.duration;
             if (d.days > 0 || d.hours > 0 || d.minutes > 0) {
                durationString = `${d.days || 0}-${d.hours || 0}-${d.minutes || 0}`;
@@ -217,11 +225,16 @@ accountsPage.addEventListener('click', e => {
                 <input type="text" class="task-input" placeholder="任務名稱" value="${existingTask?.task || ''}">
             </div>
             <div class="duration-group">
-                <input type="text" class="duration-combined" placeholder="天-時-分 (例: 5-12-30)" value="${durationString}">
+                <input type="text" class="duration-combined" placeholder="天-時-分 (例: 5-12-30)" value="${durationString}" style="color: ${durationColor};">
             </div>
             <div class="completion-time" readonly></div>
         `;
         container.appendChild(row);
+
+        const durationInput = row.querySelector('.duration-combined');
+        durationInput.addEventListener('input', () => {
+            durationInput.style.color = 'black';
+        });
 
         handleTaskInputChange(row, accountName, sectionId, workerId, taskId, false);
 
@@ -410,7 +423,6 @@ accountsPage.addEventListener('input', e => {
         if (!appData.accounts[accountName].workerCounts) appData.accounts[accountName].workerCounts = {};
         appData.accounts[accountName].workerCounts[sectionId] = count;
         
-        // 【新增】如果改變的是大本營工人數，立即更新工人學徒選單
         if (sectionId === 'home-village') {
             updateWorkerApprenticeSelect(accountName);
         }
@@ -437,26 +449,65 @@ accountsPage.addEventListener('input', e => {
         updateWorkerApprenticeSelect(accountName);
     }
 });
-
+    // --- 【修改】刪除任務的事件監聽 ---
     taskListContainer.addEventListener('click', (e) => {
         const deleteButton = e.target.closest('.btn-delete');
         if (deleteButton) {
             const accountName = deleteButton.dataset.account;
             const taskId = deleteButton.dataset.taskId;
             const account = appData.accounts[accountName];
+
             if (account) {
+                const taskToDelete = account.tasks.find(task => task.id === taskId);
+                if (!taskToDelete) return;
+
+                const sectionToExpand = taskToDelete.section;
+
+                const specialTasks = account.specialTasks;
+                if (taskToDelete.section === 'home-village' && taskToDelete.worker === specialTasks.workerApprentice.targetWorker) {
+                    specialTasks.workerApprentice.level = '';
+                }
+                if (taskToDelete.section === 'laboratory') {
+                    specialTasks.labAssistant.level = '';
+                }
+                
+                if (!account.collapsedSections) account.collapsedSections = {};
+                account.collapsedSections[sectionToExpand] = false;
+
                 account.tasks = account.tasks.filter(task => task.id !== taskId);
+                
                 saveData(appData);
+
                 const accountIndex = ACCOUNTS_CONFIG.findIndex(acc => acc.name === accountName);
                 if (accountIndex !== -1) {
                     currentAccountIndex = accountIndex;
                     navigateTo('accounts-page');
                     renderAccountPages(ACCOUNTS_CONFIG, appData);
                     updateSlider();
+
+                    // --- 【全新修改】等待轉場動畫結束後再滾動 ---
+                    const accountsPageElement = document.getElementById('accounts-page');
+
+                    const scrollToAction = () => {
+                        const targetSlide = document.querySelector(`.account-page-slide[data-account-name="${accountName}"]`);
+                        if (targetSlide) {
+                            const targetSection = targetSlide.querySelector(`.input-section[data-section-id="${sectionToExpand}"]`);
+                            if (targetSection) {
+                                targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                        }
+                    };
+                    
+                    // 監聽 'transitionend' 事件，它會在 CSS 過場動畫結束時觸發
+                    // { once: true } 確保這個監聽器只會執行一次，然後自動移除，避免重複觸發
+                    accountsPageElement.addEventListener('transitionend', scrollToAction, { once: true });
+                    // --- 結束修改 ---
                 }
             }
         }
     });
+    // --- 結束修改 ---
+
 
     document.getElementById('next-account').addEventListener('click', () => {
         if (currentAccountIndex < ACCOUNTS_CONFIG.length - 1) {
