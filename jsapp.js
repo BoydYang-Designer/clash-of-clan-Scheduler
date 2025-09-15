@@ -67,50 +67,52 @@ function renderAccountPages(configs, data) {
 
         const accountData = data.accounts[acc.name];
         const specialTasks = accountData.specialTasks || {};
-        const specialCollapsed = accountData.collapsedSections['special-tasks'] || true;
-        
-        const specialTasksHtml = `
-            <div class="special-tasks-container">
-                <div class="input-section ${specialCollapsed ? 'collapsed' : ''}" data-section-id="special-tasks" data-account="${acc.name}">
-                    <div class="section-header">
-                        <h3 class="section-title">特殊任務</h3>
-                    </div>
-                    <div class="input-section-body">
-                        <div class="special-task-block">
-                            <label>工人學徒</label>
-                            <div class="special-task-row">
-                                <span>等級:</span>
-                                <input type="number" class="special-task-input" data-account="${acc.name}" data-special-task="workerApprentice" value="${specialTasks.workerApprentice?.level || ''}" placeholder="Lv">
-                                <span>開始:</span>
-                                <input type="time" class="special-task-time-input" data-account="${acc.name}" data-special-task="workerApprentice" value="${specialTasks.workerApprentice?.startTime || '15:00'}">
-                            </div>
-                            <label>指定任務 (大本營):</label>
-                            <select class="special-task-select" data-account="${acc.name}" data-special-task="workerApprenticeTarget">
-                                <option value="">-- 未指派 --</option>
-                            </select>
-                        </div>
-                        <div class="special-task-block">
-                            <label>實驗助手</label>
-                             <div class="special-task-row">
-                                <span>等級:</span>
-                                <input type="number" class="special-task-input" data-account="${acc.name}" data-special-task="labAssistant" value="${specialTasks.labAssistant?.level || ''}" placeholder="Lv">
-                                <span>開始:</span>
-                                <input type="time" class="special-task-time-input" data-account="${acc.name}" data-special-task="labAssistant" value="${specialTasks.labAssistant?.startTime || '15:00'}">
-                            </div>
-                            <label>指定任務 (實驗室):</label>
-                            <select class="special-task-select" data-account="${acc.name}" data-special-task="labAssistantTarget">
-                                <option value="">-- 未指派 --</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
         
         let sectionsHtml = '';
         SECTIONS_CONFIG.forEach(sec => {
             const savedLevel = accountData.levels[sec.id] || sec.defaultLevel;
             const isCollapsed = accountData.collapsedSections[sec.id];
+            
+            // 【修改】準備一個變數來存放特殊任務的 HTML
+            let specialTaskBlockHtml = '';
+
+            // 【修改】如果區塊是大本營，則生成工人學徒的 HTML
+            if (sec.id === 'home-village') {
+                specialTaskBlockHtml = `
+                    <div class="special-task-block">
+                        <label>工人學徒</label>
+                        <div class="special-task-row">
+                            <span>等級:</span>
+                            <input type="number" class="special-task-input" data-account="${acc.name}" data-special-task="workerApprentice" value="${specialTasks.workerApprentice?.level || ''}" placeholder="Lv">
+                            <span>開始:</span>
+                            <input type="time" class="special-task-time-input" data-account="${acc.name}" data-special-task="workerApprentice" value="${specialTasks.workerApprentice?.startTime || '15:00'}">
+                        </div>
+                        <label>指定任務 (大本營):</label>
+                        <select class="special-task-select" data-account="${acc.name}" data-special-task="workerApprenticeTarget">
+                            <option value="">-- 未指派 --</option>
+                        </select>
+                    </div>
+                `;
+            }
+            // 【修改】如果區塊是實驗室，則生成實驗助手的 HTML
+            else if (sec.id === 'laboratory') {
+                specialTaskBlockHtml = `
+                    <div class="special-task-block">
+                        <label>實驗助手</label>
+                         <div class="special-task-row">
+                            <span>等級:</span>
+                            <input type="number" class="special-task-input" data-account="${acc.name}" data-special-task="labAssistant" value="${specialTasks.labAssistant?.level || ''}" placeholder="Lv">
+                            <span>開始:</span>
+                            <input type="time" class="special-task-time-input" data-account="${acc.name}" data-special-task="labAssistant" value="${specialTasks.labAssistant?.startTime || '15:00'}">
+                        </div>
+                        <label>指定任務 (實驗室):</label>
+                        <select class="special-task-select" data-account="${acc.name}" data-special-task="labAssistantTarget">
+                            <option value="">-- 未指派 --</option>
+                        </select>
+                    </div>
+                `;
+            }
+
             sectionsHtml += `
                 <div class="input-section ${isCollapsed ? 'collapsed' : ''}" data-section-id="${sec.id}" data-account="${acc.name}">
                     <div class="section-header">
@@ -128,13 +130,13 @@ function renderAccountPages(configs, data) {
                             <input type="number" class="worker-count" min="0" max="9" placeholder="0" data-account="${acc.name}" data-section="${sec.id}">
                         </div>
                         <div class="worker-rows-container"></div>
+                        
+                        ${specialTaskBlockHtml}
                     </div>
                 </div>
             `;
 
-            if (sec.id === 'home-village') {
-                sectionsHtml += specialTasksHtml;
-            }
+            // 【修改】舊的插入邏輯已移除
         });
 
          slide.innerHTML = `
@@ -154,6 +156,7 @@ function renderAccountPages(configs, data) {
 
     restoreInputsFromData(data);
 }
+
 
 function updateTaskTargetSelect(accountName, specialTaskType, sourceSectionId) {
     const selector = `.account-page-slide[data-account-name="${accountName}"] .special-task-select[data-special-task="${specialTaskType}"]`;
