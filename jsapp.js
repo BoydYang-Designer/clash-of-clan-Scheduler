@@ -561,7 +561,68 @@ accountsPage.addEventListener('input', e => {
     function init() {
         renderAccountPages(ACCOUNTS_CONFIG, appData);
         navigateTo('home-page');
+            loadState();
+    loadSchedulerState();
+    checkAndApplySpecialTaskDeductions();
     }
 
     init();
 });
+
+/**
+ * Checks for and applies special task deductions based on the current date and time.
+ * This function handles multi-day deductions if the user hasn't logged in for a while.
+ */
+function checkAndApplySpecialTaskDeductions() {
+    const now = new Date();
+    const today = formatDate(now);
+    const lastDeductionRecords = JSON.parse(localStorage.getItem('specialTaskDeductions')) || {};
+    let changed = false;
+
+    // Only run if it's after 3 PM
+    if (now.getHours() >= 15) {
+        state.taskData.forEach(task => {
+            if (task.section === 'special-tasks' && task.assignedTo && task.totalHours > 0) {
+                const lastDeductionDateStr = lastDeductionRecords[task.id];
+                const lastDeductionDate = lastDeductionDateStr ? new Date(lastDeductionDateStr) : new Date(task.assignedDate);
+
+                const oneDay = 24 * 60 * 60 * 1000;
+                let daysToDeduct = 0;
+
+                // Handle initial assignment date if it's today
+                if (!lastDeductionDateStr) {
+                    const assignedDate = new Date(task.assignedDate);
+                    // Check if assigned today before 3 PM
+                    if (formatDate(assignedDate) === today && assignedDate.getHours() < 15) {
+                        daysToDeduct = 1;
+                    }
+                } else {
+                    // Calculate days passed since last deduction
+                    let currentDate = new Date(lastDeductionDate.getTime() + oneDay);
+                    while (formatDate(currentDate) <= today) {
+                        // Only count days that passed 3 PM
+                        if (currentDate.getHours() >= 15 || formatDate(currentDate) !== lastDeductionDateStr) {
+                            daysToDeduct++;
+                        }
+                        currentDate.setTime(currentDate.getTime() + oneDay);
+                    }
+                }
+                
+                if (daysToDeduct > 0) {
+                    const hoursToDeduct = task.level * daysToDeduct;
+                    task.totalHours = Math.max(0, task.totalHours - hoursToDeduct);
+                    console.log(`Deducted ${hoursToDeduct} hours for task ${task.id} over ${daysToDeduct} day(s). New total: ${task.totalHours}`);
+                    lastDeductionRecords[task.id] = today;
+                    changed = true;
+                }
+            }
+        });
+        
+        if (changed) {
+            localStorage.setItem('specialTaskDeductions', JSON.stringify(lastDeductionRecords));
+            saveState(); // Update the main app state
+            renderAccountTasks();
+            renderScheduler();
+        }
+    }
+}
