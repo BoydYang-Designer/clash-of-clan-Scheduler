@@ -69,7 +69,6 @@ function renderAccountPages(configs, data) {
         const specialTasks = accountData.specialTasks || {};
         const specialCollapsed = accountData.collapsedSections['special-tasks'] || true;
         
-        // 【修改】特殊任務區塊的 HTML，包含開始時間
         const specialTasksHtml = `
             <div class="special-tasks-container">
                 <div class="input-section ${specialCollapsed ? 'collapsed' : ''}" data-section-id="special-tasks" data-account="${acc.name}">
@@ -149,7 +148,6 @@ function renderAccountPages(configs, data) {
         `;
         accountSlider.appendChild(slide);
 
-        // 動態填充特殊任務的下拉選單
         updateTaskTargetSelect(acc.name, 'workerApprenticeTarget', 'home-village');
         updateTaskTargetSelect(acc.name, 'labAssistantTarget', 'laboratory');
     });
@@ -157,12 +155,6 @@ function renderAccountPages(configs, data) {
     restoreInputsFromData(data);
 }
 
-/**
- * 【新增】更新特殊任務的目標下拉選單
- * @param {string} accountName - 帳號名稱
- * @param {string} specialTaskType - 特殊任務類型 (e.g., 'workerApprenticeTarget')
- * @param {string} sourceSectionId - 任務來源的區塊 ID (e.g., 'home-village')
- */
 function updateTaskTargetSelect(accountName, specialTaskType, sourceSectionId) {
     const selector = `.account-page-slide[data-account-name="${accountName}"] .special-task-select[data-special-task="${specialTaskType}"]`;
     const select = document.querySelector(selector);
@@ -197,6 +189,10 @@ accountsPage.addEventListener('click', e => {
         }
     }
 });
+
+/**
+ * 【修改】重寫時間計算邏輯，以反應剩餘時間
+ */
 function generateWorkerRows(container, count, accountName, sectionId) {
     count = Math.min(count, 9);
     container.innerHTML = '';
@@ -207,14 +203,11 @@ function generateWorkerRows(container, count, accountName, sectionId) {
         const existingTask = accountTasks.find(t => t.worker === workerId);
         const taskId = existingTask ? existingTask.id : `${accountName}-${sectionId}-${workerId}-${Date.now()}`;
         
+        // 永遠顯示原始持續時間（黑字）
         let durationString = '';
         let durationColor = 'black';
-
-        if (existingTask && existingTask.duration) {
-            const d = existingTask.duration;
-            if (d.days > 0 || d.hours > 0 || d.minutes > 0) {
-               durationString = `${d.days || 0}-${d.hours || 0}-${d.minutes || 0}`;
-            }
+        if (existingTask?.duration) {
+            durationString = `${existingTask.duration.days || 0}-${existingTask.duration.hours || 0}-${existingTask.duration.minutes || 0}`;
         }
 
         const row = document.createElement('div');
@@ -265,6 +258,9 @@ function generateWorkerRows(container, count, accountName, sectionId) {
         });
     }
 
+    /**
+     * 【修改】註記改為以小時顯示
+     */
     function handleTaskInputChange(row, accountName, sectionId, workerId, taskId, shouldSave = true) {
         const taskInput = row.querySelector('.task-input').value.trim();
         const durationInput = row.querySelector('.duration-combined').value;
@@ -280,9 +276,9 @@ function generateWorkerRows(container, count, accountName, sectionId) {
 
         let entryTimestamp = task?.entryTimestamp || null;
         const hasNewDuration = totalDurationInMinutes > 0;
-        const oldDurationInMinutes = task?.duration ? (task.duration.days * 1440) + (task.duration.hours * 60) + task.duration.minutes : 0;
-
-        if (shouldSave && hasNewDuration && totalDurationInMinutes !== oldDurationInMinutes) {
+        
+        // 只有在手動輸入新時間時，才更新時間戳，並儲存原始 duration
+        if (shouldSave && document.activeElement === row.querySelector('.duration-combined')) {
             entryTimestamp = Date.now();
         }
         
@@ -291,11 +287,24 @@ function generateWorkerRows(container, count, accountName, sectionId) {
         }
 
         const totalDeductedMinutes = task?.totalDeductedMinutes || 0;
-        const completionResult = calculateCompletionTime(entryTimestamp, totalDurationInMinutes, totalDeductedMinutes);
+        
+        // 使用儲存的原始 duration（如果存在），否則用 input 的（新輸入時）
+        const effectiveTotalDuration = task?.duration 
+            ? (task.duration.days * 24 * 60) + (task.duration.hours * 60) + task.duration.minutes
+            : totalDurationInMinutes;
+        
+        const completionResult = calculateCompletionTime(entryTimestamp, effectiveTotalDuration, totalDeductedMinutes);
         
         let completionHtml = completionResult.time;
         if (completionResult.deductions > 0) {
-            completionHtml += ` <span class="deduction-note">(已扣除: ${completionResult.deductions} 分鐘)</span>`;
+            let deductionText;
+            if (completionResult.deductions % 60 === 0) {
+                const hours = completionResult.deductions / 60;
+                deductionText = `(已扣除: ${hours} 小時)`;
+            } else {
+                deductionText = `(已扣除: ${completionResult.deductions} 分鐘)`;
+            }
+            completionHtml += ` <span class="deduction-note">${deductionText}</span>`;
         }
         completionTimeDiv.innerHTML = completionHtml;
 
@@ -325,33 +334,38 @@ function generateWorkerRows(container, count, accountName, sectionId) {
         }
     }
 
-    /**
-     * 【修改】計算完成時間並回傳包含註記的物件
-     */
-    function calculateCompletionTime(entryTimestamp, totalDurationInMinutes, totalDeductedMinutes = 0) {
-        if (!entryTimestamp || totalDurationInMinutes <= 0) {
-            return { time: 'N/A', deductions: 0 };
-        }
-
-        const finalDurationInMinutes = totalDurationInMinutes - totalDeductedMinutes;
-        if (finalDurationInMinutes <= 0) {
-            return { time: '已完成', deductions: totalDeductedMinutes };
-        }
-
-        const completionDate = new Date(entryTimestamp);
-        completionDate.setMinutes(completionDate.getMinutes() + finalDurationInMinutes);
-
-        const year = completionDate.getFullYear();
-        const month = (completionDate.getMonth() + 1).toString().padStart(2, '0');
-        const day = completionDate.getDate().toString().padStart(2, '0');
-        const hours = completionDate.getHours().toString().padStart(2, '0');
-        const minutes = completionDate.getMinutes().toString().padStart(2, '0');
-
-        return {
-            time: `${year}/${month}/${day} ${hours}:${minutes}`,
-            deductions: totalDeductedMinutes
-        };
+function calculateCompletionTime(entryTimestamp, totalDurationInMinutes, totalDeductedMinutes = 0) {
+    if (!entryTimestamp || totalDurationInMinutes <= 0) {
+        return { time: 'N/A', deductions: 0 };
     }
+
+    const now = Date.now();
+    const elapsedMinutes = (now - entryTimestamp) / (1000 * 60);
+    const remainingMinutes = Math.max(0, totalDurationInMinutes - totalDeductedMinutes - elapsedMinutes);
+
+    if (remainingMinutes <= 0) {
+        return { time: '已完成', deductions: totalDeductedMinutes };
+    }
+
+    // 如果剩餘時間小於 60 分鐘，直接回傳分鐘數
+    if (remainingMinutes < 60) {
+        return { time: `${Math.round(remainingMinutes)} 分鐘`, deductions: totalDeductedMinutes };
+    }
+
+    const completionDate = new Date(now);
+    completionDate.setMinutes(completionDate.getMinutes() + remainingMinutes);
+
+    const year = completionDate.getFullYear();
+    const month = (completionDate.getMonth() + 1).toString().padStart(2, '0');
+    const day = completionDate.getDate().toString().padStart(2, '0');
+    const hours = completionDate.getHours().toString().padStart(2, '0');
+    const minutes = completionDate.getMinutes().toString().padStart(2, '0');
+
+    return {
+        time: `${year}/${month}/${day} ${hours}:${minutes}`,
+        deductions: totalDeductedMinutes
+    };
+}
     
     function updateSlider() {
         accountSlider.scrollLeft = currentAccountIndex * accountSlider.clientWidth;
@@ -382,7 +396,6 @@ function generateWorkerRows(container, count, accountName, sectionId) {
         URL.revokeObjectURL(url);
     });
 
-    // 【新增】匯入 JSON 功能的事件監聽
     const importJsonBtn = document.getElementById('import-json-btn');
     const importFileInput = document.getElementById('import-file-input');
 
@@ -465,7 +478,6 @@ accountsPage.addEventListener('input', e => {
                 const account = appData.accounts[accountName];
                 if (!account) { hideLoader(); return; }
 
-                // 【修改】如果刪除的任務被特殊任務指定，則清空指定
                 if (account.specialTasks) {
                     if (account.specialTasks.labAssistant?.targetTaskId === taskId) {
                         account.specialTasks.labAssistant.targetTaskId = '';
@@ -489,7 +501,7 @@ accountsPage.addEventListener('input', e => {
                 const accountIndex = ACCOUNTS_CONFIG.findIndex(acc => acc.name === accountName);
                 if (accountIndex !== -1) {
                     currentAccountIndex = accountIndex;
-                    navigateTo('accounts-page'); // 導航會自動處理渲染和 loader
+                    navigateTo('accounts-page');
                 } else {
                     hideLoader();
                 }
@@ -528,9 +540,6 @@ accountsPage.addEventListener('input', e => {
         }
     });
 
-    /**
-     * 【新增】檢查並執行特殊任務的每日時間扣除
-     */
     function checkAndApplySpecialTaskDeductions() {
         const now = new Date();
         const todayStr = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
@@ -554,7 +563,7 @@ accountsPage.addEventListener('input', e => {
                     const targetTask = account.tasks.find(t => t.id === specialTask.targetTaskId);
                     if (!targetTask) return;
 
-                    const deductionAmount = parseInt(specialTask.level, 10) * 60; // 每等級扣 60 分鐘
+                    const deductionAmount = parseInt(specialTask.level, 10) * 60;
                     if (deductionAmount <= 0) return;
 
                     targetTask.totalDeductedMinutes = (targetTask.totalDeductedMinutes || 0) + deductionAmount;
@@ -568,7 +577,6 @@ accountsPage.addEventListener('input', e => {
         if (dataChanged) {
             localStorage.setItem('dailyDeductionRecords', JSON.stringify(deductionRecords));
             saveData(appData);
-            // 如果剛好在帳號頁，需要重新渲染以更新時間
             if (document.getElementById('accounts-page').classList.contains('active')) {
                 renderAccountPages(ACCOUNTS_CONFIG, appData);
                 updateSlider();
@@ -582,7 +590,7 @@ accountsPage.addEventListener('input', e => {
 
     function init() {
         renderAccountPages(ACCOUNTS_CONFIG, appData);
-        checkAndApplySpecialTaskDeductions(); // 啟動時檢查一次
+        checkAndApplySpecialTaskDeductions();
         navigateTo('home-page');
         window.addEventListener('resize', setAppHeight);
         setAppHeight();

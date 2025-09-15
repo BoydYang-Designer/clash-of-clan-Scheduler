@@ -39,6 +39,7 @@ body {
     height: 100vh;
     overflow: hidden;
     font-size: 18px;
+    touch-action: manipulation; /* 【新增】禁止雙擊放大 */
 }
 
 #app-container {
