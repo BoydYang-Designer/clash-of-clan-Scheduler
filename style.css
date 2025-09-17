@@ -182,7 +182,7 @@ body {
     width: 100%;
     scroll-snap-align: start;
     /* 【修改】增加底部 padding，避免被固定頁尾遮擋 */
-    padding: 20px 20px 160px 20px;
+    padding: 0 20px 160px 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -191,20 +191,56 @@ body {
 }
 
 .account-header {
-    text-align: center;
-    margin-bottom: 25px;
+    /* 【修改】設定為黏性定位，使其固定在頂部 */
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background-color: var(--color-background); /* 設定背景色以遮擋下方內容 */
+    display: flex;
+    justify-content: center; /* 【修改】改為置中對齊 */
+    align-items: center;
+    gap: 20px; /* 【新增】增加元件間距 */
+    padding: 10px;
+    width: 100%;
+    border-bottom: 1px solid var(--color-border); /* 新增底線以區分 */
 }
 
+.account-header .slider-arrow {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 10px;
+}
+
+.account-header .slider-arrow img {
+    width: 40px; /* 調整箭頭圖片大小 */
+    height: auto;
+    transition: transform 0.2s;
+}
+.account-header .slider-arrow:active img {
+    transform: scale(0.9);
+}
+
+.account-header .prev-account-arrow img {
+    transform: scaleX(-1); /* 【修改】將左箭頭圖片水平鏡射 */
+}
+.account-header .prev-account-arrow:active img {
+    transform: scaleX(-1) scale(0.9);
+}
+
+
 .account-avatar {
-    width: 150px;
-    height: 150px;
+    width: 100px; /* 【修改】縮小頭像尺寸以適應新佈局 */
+    height: 100px;
     border-radius: 50%;
     object-fit: cover;
 }
 
 .account-name {
-    margin-top: 15px;
+    margin-top: 20px; /* 【修改】將帳號名稱移出 header，並調整間距 */
+    margin-bottom: 25px;
     font-size: 2.5rem;
+    text-align: center;
 }
 
 .account-body {
@@ -378,13 +414,13 @@ body {
 
 /* --- 頁尾樣式 (Fixed Footer) --- */
 
-/* 【修改】帳號頁面的頁尾，改為固定 */
+/* 【修改】帳號頁面的頁尾 */
 .slider-footer {
-    padding:10px;
+    padding: 20px; /* 【修改】調整 padding */
     background-color: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(5px);
     border-top: 1px solid var(--color-border);
-    position: fixed; /* 改為 fixed */
+    position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
@@ -398,15 +434,13 @@ body {
 }
 
 .slider-footer .go-to-scheduler-from-accounts {
-    order: 1; /* 按鈕在上方 */
     width: 100%;
+    max-width: 400px; /* 新增最大寬度 */
 }
 
+/* 【修改】移除舊的底部導航控件 */
 .slider-footer .footer-nav-controls {
-    order: 2; /* 導航在下方 */
-    display: flex;
-    align-items: center;
-    gap: 10px;
+   display: none;
 }
 
 /* 【修改】排程頁面的頁尾，同樣改為固定 */

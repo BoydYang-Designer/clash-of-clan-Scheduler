@@ -10,11 +10,11 @@ const SECTIONS_CONFIG = [
 document.addEventListener('DOMContentLoaded', () => {
     // --- 帳號設定 ---
     const ACCOUNTS_CONFIG = [
-        { name: '路人甲', avatar: 'images/路人甲.png' },
-        { name: '奇異果冰沙', avatar: 'images/奇異果冰沙.png' },
-        { name: '鯨頭鸛', avatar: 'images/鯨頭鸛.png' },
-        { name: '楊令公', avatar: 'images/楊令公.png' },
-        { name: '燈眼魚', avatar: 'images/燈眼魚.png' },
+        { name: '路人甲', avatar: 'images/路人甲.png', arrow: 'images/路人甲箭頭.png' },
+        { name: '奇異果冰沙', avatar: 'images/奇異果冰沙.png', arrow: 'images/奇異果冰沙箭頭.png' },
+        { name: '鯨頭鸛', avatar: 'images/鯨頭鸛.png', arrow: 'images/鯨頭鸛箭頭.png' },
+        { name: '楊令公', avatar: 'images/楊令公.png', arrow: 'images/楊令公箭頭.png' },
+        { name: '燈眼魚', avatar: 'images/燈眼魚.png', arrow: 'images/燈眼魚箭頭.png' },
     ];
 
     // --- 全局狀態 ---
@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 50);
     }
 
-// --- 動態生成帳號頁面 ---
+// --- 【MAJOR UPDATE】動態生成帳號頁面，並修改頭部佈局 ---
 function renderAccountPages(configs, data) {
     accountSlider.innerHTML = '';
     configs.forEach((acc, index) => {
@@ -73,10 +73,8 @@ function renderAccountPages(configs, data) {
             const savedLevel = accountData.levels[sec.id] || sec.defaultLevel;
             const isCollapsed = accountData.collapsedSections[sec.id];
             
-            // 【修改】準備一個變數來存放特殊任務的 HTML
             let specialTaskBlockHtml = '';
 
-            // 【修改】如果區塊是大本營，則生成工人學徒的 HTML
             if (sec.id === 'home-village') {
                 specialTaskBlockHtml = `
                     <div class="special-task-block">
@@ -94,7 +92,6 @@ function renderAccountPages(configs, data) {
                     </div>
                 `;
             }
-            // 【修改】如果區塊是實驗室，則生成實驗助手的 HTML
             else if (sec.id === 'laboratory') {
                 specialTaskBlockHtml = `
                     <div class="special-task-block">
@@ -135,15 +132,20 @@ function renderAccountPages(configs, data) {
                     </div>
                 </div>
             `;
-
-            // 【修改】舊的插入邏輯已移除
         });
-
-         slide.innerHTML = `
+         
+        // 【修改】HTML 結構以實現新的黏性頭部
+        slide.innerHTML = `
             <div class="account-header">
+                <button class="slider-arrow prev-account-arrow">
+                    <img src="${acc.arrow}" alt="上一個帳號">
+                </button>
                 <img src="${acc.avatar}" alt="${acc.name} 頭像" class="account-avatar">
-                <h2 class="account-name">${acc.name}</h2>
+                <button class="slider-arrow next-account-arrow">
+                    <img src="${acc.arrow}" alt="下一個帳號">
+                </button>
             </div>
+            <h2 class="account-name">${acc.name}</h2>
             <div class="account-body">
                 ${sectionsHtml}
             </div>
@@ -405,7 +407,8 @@ function calculateCompletionTime(entryTimestamp, totalDurationInMinutes, totalDe
     
     function updateSlider() {
         accountSlider.scrollLeft = currentAccountIndex * accountSlider.clientWidth;
-        document.getElementById('account-indicator').textContent = `${currentAccountIndex + 1} / ${ACCOUNTS_CONFIG.length}`;
+        // 【移除】舊的底部帳號指示器更新
+        // document.getElementById('account-indicator').textContent = `${currentAccountIndex + 1} / ${ACCOUNTS_CONFIG.length}`;
     }
 
    // --- 事件監聽 ---
@@ -545,36 +548,46 @@ accountsPage.addEventListener('input', e => {
         }
     });
 
+    // 【修改】移除舊的底部按鈕事件監聽器
+    // document.getElementById('next-account').addEventListener('click', ...);
+    // document.getElementById('prev-account').addEventListener('click', ...);
 
-    document.getElementById('next-account').addEventListener('click', () => {
-        if (currentAccountIndex < ACCOUNTS_CONFIG.length - 1) {
-            currentAccountIndex++;
-            updateSlider();
-        }
-    });
-    document.getElementById('prev-account').addEventListener('click', () => {
-        if (currentAccountIndex > 0) {
-            currentAccountIndex--;
-            updateSlider();
+    // 【新增】使用事件委派監聽滑動容器中的新箭頭按鈕
+    accountSlider.addEventListener('click', (e) => {
+        const nextButton = e.target.closest('.next-account-arrow');
+        const prevButton = e.target.closest('.prev-account-arrow');
+
+        if (nextButton) {
+            if (currentAccountIndex < ACCOUNTS_CONFIG.length - 1) {
+                currentAccountIndex++;
+                updateSlider();
+            }
+        } else if (prevButton) {
+            if (currentAccountIndex > 0) {
+                currentAccountIndex--;
+                updateSlider();
+            }
         }
     });
     
-    let scrollLeftBeforeFocus;
-    accountsPage.addEventListener('focusin', (e) => {
-        if (e.target.classList.contains('task-input')) {
-            scrollLeftBeforeFocus = accountSlider.scrollLeft;
+    // 【修改】移除舊的、有問題的 focusin/focusout 處理邏輯
+    // let scrollLeftBeforeFocus;
+    // accountsPage.addEventListener('focusin', ...);
+    // accountsPage.addEventListener('focusout', ...);
+
+    // 【新增】新的 focusout 處理邏輯，嘗試修復行動裝置鍵盤造成的畫面問題
+    accountsPage.addEventListener('focusout', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
+            setTimeout(() => {
+                // 這個操作會輕微地滾動頁面，可以觸發瀏覽器重新繪製，
+                // 有助於解決鍵盤收合後留下的空白或錯位問題。
+                window.scrollTo(0, document.body.scrollTop);
+                 // 同時確保滑塊的水平位置正確
+                updateSlider();
+            }, 100); 
         }
     });
 
-    accountsPage.addEventListener('focusout', (e) => {
-        if (e.target.classList.contains('task-input')) {
-            setTimeout(() => {
-                if (accountSlider.scrollLeft !== scrollLeftBeforeFocus) {
-                    accountSlider.scrollLeft = scrollLeftBeforeFocus;
-                }
-            }, 100);
-        }
-    });
 
     function checkAndApplySpecialTaskDeductions() {
         const now = new Date();
