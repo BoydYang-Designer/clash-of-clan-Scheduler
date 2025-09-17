@@ -188,22 +188,24 @@ body {
     align-items: center;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+     padding-top: 80px; /* 視 header 高度調整，例如 80px */
 }
 
 .account-header {
-    /* 【修改】設定為黏性定位，使其固定在頂部 */
-    position: sticky;
+    position: fixed;       /* 原本是 sticky */
     top: 0;
+    left: 0;
+    right: 0;
     z-index: 20;
-    background-color: var(--color-background); /* 設定背景色以遮擋下方內容 */
+    background-color: var(--color-background);
     display: flex;
-    justify-content: center; /* 【修改】改為置中對齊 */
+    justify-content: center;
     align-items: center;
-    gap: 20px; /* 【新增】增加元件間距 */
+    gap: 20px;
     padding: 10px;
-    width: 100%;
-    border-bottom: 1px solid var(--color-border); /* 新增底線以區分 */
+    border-bottom: 1px solid var(--color-border);
 }
+
 
 .account-header .slider-arrow {
     background: none;
