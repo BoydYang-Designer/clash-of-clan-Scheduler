@@ -548,11 +548,7 @@ accountsPage.addEventListener('input', e => {
         }
     });
 
-    // 【修改】移除舊的底部按鈕事件監聽器
-    // document.getElementById('next-account').addEventListener('click', ...);
-    // document.getElementById('prev-account').addEventListener('click', ...);
-
-    // 【新增】使用事件委派監聽滑動容器中的新箭頭按鈕
+    // 【修改】使用事件委派監聽滑動容器中的新箭頭按鈕
     accountSlider.addEventListener('click', (e) => {
         const nextButton = e.target.closest('.next-account-arrow');
         const prevButton = e.target.closest('.prev-account-arrow');
@@ -570,21 +566,34 @@ accountsPage.addEventListener('input', e => {
         }
     });
     
-    // 【修改】移除舊的、有問題的 focusin/focusout 處理邏輯
-    // let scrollLeftBeforeFocus;
-    // accountsPage.addEventListener('focusin', ...);
-    // accountsPage.addEventListener('focusout', ...);
+    // 【MAJOR UPDATE】更換為新的鍵盤問題解決方案
+    let scrollTopBeforeFocus;
 
-    // 【新增】新的 focusout 處理邏輯，嘗試修復行動裝置鍵盤造成的畫面問題
+    accountsPage.addEventListener('focusin', (e) => {
+        const target = e.target;
+        // 當使用者點擊輸入框時
+        if (target.tagName === 'INPUT' || target.tagName === 'SELECT') {
+            const slide = target.closest('.account-page-slide');
+            if (slide) {
+                // 記錄下當前內容的滾動位置
+                scrollTopBeforeFocus = slide.scrollTop;
+            }
+        }
+    });
+
     accountsPage.addEventListener('focusout', (e) => {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
-            setTimeout(() => {
-                // 這個操作會輕微地滾動頁面，可以觸發瀏覽器重新繪製，
-                // 有助於解決鍵盤收合後留下的空白或錯位問題。
-                window.scrollTo(0, document.body.scrollTop);
-                 // 同時確保滑塊的水平位置正確
-                updateSlider();
-            }, 100); 
+        const target = e.target;
+        // 當使用者結束輸入，點擊其他地方時
+        if (target.tagName === 'INPUT' || target.tagName === 'SELECT') {
+            const slide = target.closest('.account-page-slide');
+            // 檢查是否有記錄過位置
+            if (slide && typeof scrollTopBeforeFocus !== 'undefined') {
+                // 稍微延遲後，將內容滾動回原來的位置
+                setTimeout(() => {
+                    slide.scrollTop = scrollTopBeforeFocus;
+                    scrollTopBeforeFocus = undefined; // 清除記錄
+                }, 100); 
+            }
         }
     });
 
@@ -602,7 +611,7 @@ accountsPage.addEventListener('input', e => {
             ['workerApprentice', 'labAssistant'].forEach(specialTaskType => {
                 const specialTask = account.specialTasks[specialTaskType];
 
-                if (!specialTask || !specialTask.level || !specialTask.targetTaskId || !specialTask.startTime) return;
+                if (!specialTask || !special.level || !specialTask.targetTaskId || !specialTask.startTime) return;
 
                 const recordKey = `${accountName}-${specialTask.targetTaskId}-${specialTaskType}`;
                 if (deductionRecords[recordKey] === todayStr) return;
