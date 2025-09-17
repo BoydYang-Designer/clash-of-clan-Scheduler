@@ -1,4 +1,4 @@
-// ★★★【修正】將 SECTIONS_CONFIG 移至此處，確保在使用它的函數之前被定義
+// 【修正】將 SECTIONS_CONFIG 移至此處，確保在使用它的函數之前被定義
 const SECTIONS_CONFIG = [
     { id: 'home-village', title: '大本營', defaultLevel: '5', unit: '本' },
     { id: 'laboratory', title: '實驗室', defaultLevel: '5', unit: '級' },
@@ -71,6 +71,8 @@ function saveData(data) {
 
 /**
  * 【共用函數】計算並格式化完成時間
+ * ★★★【邏輯修改】★★★
+ * 即使任務已完成，rawTime 仍回傳原始的完成時間 Date 物件，以便於篩選和排序。
  */
 function calculateCompletionTime(entryTimestamp, totalDurationInMinutes, totalDeductedMinutes = 0) {
     if (!entryTimestamp || totalDurationInMinutes <= 0) {
@@ -78,14 +80,20 @@ function calculateCompletionTime(entryTimestamp, totalDurationInMinutes, totalDe
     }
 
     const now = Date.now();
-    const elapsedMinutes = (now - entryTimestamp) / (1000 * 60);
-    const remainingMinutes = Math.max(0, totalDurationInMinutes - totalDeductedMinutes - elapsedMinutes);
+    // 計算出絕對的、不變的完成時間戳
+    const completionTimestamp = entryTimestamp + (totalDurationInMinutes - totalDeductedMinutes) * 60 * 1000;
+    const completionDate = new Date(completionTimestamp);
 
-    if (remainingMinutes <= 0) {
-        return { time: '已完成', deductions: Math.round(totalDeductedMinutes), rawTime: '已完成' };
+    // 如果當前時間已經超過完成時間
+    if (now >= completionDate) {
+        return { 
+            time: '已完成', 
+            deductions: Math.round(totalDeductedMinutes), 
+            rawTime: completionDate // ★ 關鍵修改：回傳原始完成時間
+        };
     }
 
-    const completionDate = new Date(now + remainingMinutes * 60 * 1000);
+    // --- 若任務尚未完成，則計算並格式化顯示時間 ---
     const today = new Date();
 
     const year = completionDate.getFullYear();
@@ -94,7 +102,6 @@ function calculateCompletionTime(entryTimestamp, totalDurationInMinutes, totalDe
     const hours = completionDate.getHours().toString().padStart(2, '0');
     const minutes = completionDate.getMinutes().toString().padStart(2, '0');
 
-    // 提供給帳號頁面使用的、會根據是否為今天而變化的顯示格式
     let displayTimeForAccounts;
     const isToday = today.getFullYear() === year &&
                     today.getMonth() === completionDate.getMonth() &&
@@ -107,10 +114,8 @@ function calculateCompletionTime(entryTimestamp, totalDurationInMinutes, totalDe
     }
 
     return {
-        // time 屬性改為給帳號頁面專用
         time: displayTimeForAccounts, 
         deductions: Math.round(totalDeductedMinutes),
-        // rawTime 屬性改為 Date 物件，方便比較
         rawTime: completionDate 
     };
 }

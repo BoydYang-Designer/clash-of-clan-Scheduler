@@ -1,7 +1,8 @@
 /**
  * 【MAJOR UPDATE】渲染總排程頁面
- * - 只顯示未來 24 小時內的任務
- * - 時間格式統一為 MM/DD HH:mm
+ * ★★★【邏輯修改】★★★
+ * - 現在會顯示「已完成」和「未來24小時內」的所有任務。
+ * - 已完成的任務會被特別標示，直到手動刪除。
  * @param {Object} data - 所有帳號的資料
  * @param {Array} sectionsConfig - 區塊設定，用於查找標題
  */
@@ -14,7 +15,7 @@ function renderScheduler(data, sectionsConfig) {
         return map;
     }, {});
 
-    // 1. 設定時間範圍：從現在起算的 24 小時內
+    // 1. 設定時間範圍：從現在起算的未來 24 小時
     const now = new Date();
     const twentyFourHoursLater = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
@@ -27,17 +28,20 @@ function renderScheduler(data, sectionsConfig) {
                 const originalTotalMinutes = (task.duration.days * 24 * 60) + (task.duration.hours * 60) + task.duration.minutes;
                 const totalDeductedMinutes = task.totalDeductedMinutes || 0;
                 
-                // 使用共用的 calculateCompletionTime 函數獲取最新的完成時間 Date 物件
                 const completionResult = calculateCompletionTime(task.entryTimestamp, originalTotalMinutes, totalDeductedMinutes);
 
-                // 檢查計算出的時間是否有效，且落在我們的時間範圍內
-                if (completionResult.rawTime && completionResult.rawTime !== '已完成' && completionResult.rawTime > now && completionResult.rawTime <= twentyFourHoursLater) {
+                // ★ 關鍵修改：修改篩選邏輯
+                // 舊邏輯：只顯示未來的任務 (rawTime > now)
+                // 新邏輯：只要任務的完成時間在「未來24小時」這個時間點之前，無論是過去或未來，都顯示
+                if (completionResult.rawTime && completionResult.rawTime <= twentyFourHoursLater) {
                     upcomingTasks.push({
                         ...task,
                         accountName,
                         avatar: account.avatar,
                         sectionTitle: sectionTitleMap[task.section] || '未知區域',
-                        completionDate: completionResult.rawTime // 儲存Date物件以供排序
+                        completionDate: completionResult.rawTime, // 儲存Date物件以供排序
+                        displayTime: completionResult.time, // 儲存要顯示的文字 (可能是 HH:mm 或 "已完成")
+                        isCompleted: completionResult.time === '已完成' // ★ 新增屬性，判斷任務是否完成
                     });
                 }
             }
@@ -54,16 +58,20 @@ function renderScheduler(data, sectionsConfig) {
     }
 
     upcomingTasks.forEach(task => {
-        // 格式化時間為 MM/DD HH:mm
-        const d = task.completionDate;
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        const hours = String(d.getHours()).padStart(2, '0');
-        const minutes = String(d.getMinutes()).padStart(2, '0');
-        const formattedTime = `${month}/${day} ${hours}:${minutes}`;
+        // 如果是未來任務，格式化時間為 MM/DD HH:mm
+        let formattedTime = task.displayTime;
+        if (!task.isCompleted) {
+            const d = task.completionDate;
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const hours = String(d.getHours()).padStart(2, '0');
+            const minutes = String(d.getMinutes()).padStart(2, '0');
+            formattedTime = `${month}/${day} ${hours}:${minutes}`;
+        }
 
         const taskItem = document.createElement('div');
-        taskItem.className = `task-item task-section-${task.section}`;
+        // ★ 新增邏輯：如果任務已完成，加上 'completed' class
+        taskItem.className = `task-item task-section-${task.section} ${task.isCompleted ? 'completed' : ''}`;
         taskItem.innerHTML = `
             <img src="${task.avatar}" alt="${task.accountName}" class="task-avatar">
             <div class="task-info">
