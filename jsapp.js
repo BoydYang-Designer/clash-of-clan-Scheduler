@@ -1,11 +1,4 @@
-// 【修正】將 SECTIONS_CONFIG 移到全域，讓 jsutils.js 可存取
-const SECTIONS_CONFIG = [
-    { id: 'home-village', title: '大本營', defaultLevel: '5', unit: '本' },
-    { id: 'laboratory', title: '實驗室', defaultLevel: '5', unit: '級' },
-    { id: 'pet-house', title: '戰寵小屋', defaultLevel: '1', unit: '級' },
-    { id: 'builder-base', title: '建築大師', defaultLevel: '2', unit: '本' },
-    { id: 'star-laboratory', title: '星空實驗', defaultLevel: '5', unit: '級' },
-];
+// ★★★【修正】SECTIONS_CONFIG 已移至 jsutils.js，此處將其移除以避免重複宣告錯誤
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- 帳號設定 ---
@@ -296,7 +289,6 @@ function generateWorkerRows(container, count, accountName, sectionId) {
 
         let entryTimestamp = task?.entryTimestamp || null;
         
-        // 【核心變動】只在手動輸入新時間時，才更新時間戳，並儲存原始 duration
         if (shouldSave && document.activeElement === row.querySelector('.duration-combined')) {
             entryTimestamp = Date.now();
         }
@@ -307,7 +299,6 @@ function generateWorkerRows(container, count, accountName, sectionId) {
 
         const totalDeductedMinutes = task?.totalDeductedMinutes || 0;
         
-        // 【核心變動】使用儲存的原始 duration 進行計算（如果存在），否則用 input 的（代表是新輸入）
         const effectiveTotalDuration = (shouldSave && document.activeElement === row.querySelector('.duration-combined')) || !task?.duration
             ? totalDurationInMinutes
             : (task.duration.days * 24 * 60) + (task.duration.hours * 60) + task.duration.minutes;
@@ -315,7 +306,6 @@ function generateWorkerRows(container, count, accountName, sectionId) {
         const completionResult = calculateCompletionTime(entryTimestamp, effectiveTotalDuration, totalDeductedMinutes);
         
         let completionHtml = completionResult.time;
-        // 如果有扣除時間，則加上提示
         if (completionResult.deductions > 0) {
             let deductionText;
             if (completionResult.deductions % 60 === 0) {
@@ -334,19 +324,17 @@ function generateWorkerRows(container, count, accountName, sectionId) {
                     task = { id: taskId, section: sectionId, worker: workerId, totalDeductedMinutes: 0 };
                     appData.accounts[accountName].tasks.push(task);
                 } else {
-                    return; // 如果是空任務，直接返回
+                    return;
                 }
             }
 
             task.task = taskInput;
-            // 【核心變動】只有在手動輸入時才更新原始 duration
             if (document.activeElement === row.querySelector('.duration-combined')) {
                 task.duration = { days: durationDays, hours: durationHours, minutes: durationMinutes };
             }
             task.entryTimestamp = entryTimestamp;
-            task.completion = completionResult.rawTime; // 儲存原始的完成時間，用於總排程排序
+            task.completion = completionResult.rawTime;
             
-            // 如果任務名稱和時間都被清空，則從資料中移除
             if (!task.task && totalDurationInMinutes <= 0) {
                 appData.accounts[accountName].tasks = appData.accounts[accountName].tasks.filter(t => t.id !== taskId);
             }
@@ -358,57 +346,13 @@ function generateWorkerRows(container, count, accountName, sectionId) {
         }
     }
 
-/**
- * 【MAJOR UPDATE】重寫時間計算邏輯，以滿足新的顯示格式需求
- */
-function calculateCompletionTime(entryTimestamp, totalDurationInMinutes, totalDeductedMinutes = 0) {
-    if (!entryTimestamp || totalDurationInMinutes <= 0) {
-        return { time: 'N/A', deductions: 0, rawTime: 'N/A' };
-    }
-
-    const now = Date.now();
-    const elapsedMinutes = (now - entryTimestamp) / (1000 * 60);
-    const remainingMinutes = Math.max(0, totalDurationInMinutes - totalDeductedMinutes - elapsedMinutes);
-    const effectiveDeductions = totalDeductedMinutes + elapsedMinutes;
-
-    if (remainingMinutes <= 0) {
-        return { time: '已完成', deductions: Math.round(totalDeductedMinutes), rawTime: '已完成' };
-    }
-
-    const completionDate = new Date(now + remainingMinutes * 60 * 1000);
-    const today = new Date();
-
-    const year = completionDate.getFullYear();
-    const month = (completionDate.getMonth() + 1).toString().padStart(2, '0');
-    const day = completionDate.getDate().toString().padStart(2, '0');
-    const hours = completionDate.getHours().toString().padStart(2, '0');
-    const minutes = completionDate.getMinutes().toString().padStart(2, '0');
-
-    const rawTime = `${year}/${month}/${day} ${hours}:${minutes}`;
-    let displayTime;
-
-    // 判斷完成日期是否為今天
-    const isToday = today.getFullYear() === year &&
-                    today.getMonth() === completionDate.getMonth() &&
-                    today.getDate() === day;
-
-    if (isToday) {
-        displayTime = `${hours}:${minutes}`; // 當天完成，只顯示時間
-    } else {
-        displayTime = `${month}/${day} ${hours}:${minutes}`; // 未來完成，顯示月/日 時間
-    }
-
-    return {
-        time: displayTime,
-        deductions: Math.round(totalDeductedMinutes),
-        rawTime: rawTime // 提供給排程頁面排序用的完整時間
-    };
-}
+    /**
+     * ★★★【修正】移除此處重複的 calculateCompletionTime 函數。
+     * 現在統一使用 jsutils.js 中定義的共用版本。
+     */
     
     function updateSlider() {
         accountSlider.scrollLeft = currentAccountIndex * accountSlider.clientWidth;
-        // 【移除】舊的底部帳號指示器更新
-        // document.getElementById('account-indicator').textContent = `${currentAccountIndex + 1} / ${ACCOUNTS_CONFIG.length}`;
     }
 
    // --- 事件監聽 ---
@@ -548,7 +492,6 @@ accountsPage.addEventListener('input', e => {
         }
     });
 
-    // 【修改】使用事件委派監聽滑動容器中的新箭頭按鈕
     accountSlider.addEventListener('click', (e) => {
         const nextButton = e.target.closest('.next-account-arrow');
         const prevButton = e.target.closest('.prev-account-arrow');
@@ -566,66 +509,18 @@ accountsPage.addEventListener('input', e => {
         }
     });
     
-    // 【MAJOR UPDATE】更換為新的鍵盤問題解決方案
-    let scrollTopBeforeFocus;
-
     accountsPage.addEventListener('focusin', (e) => {
         const target = e.target;
-        // 當使用者點擊輸入框時
         if (target.tagName === 'INPUT' || target.tagName === 'SELECT') {
             const slide = target.closest('.account-page-slide');
             if (slide) {
-                // 記錄下當前內容的滾動位置
-                scrollTopBeforeFocus = slide.scrollTop;
-            }
-        }
-    });
-
-    accountsPage.addEventListener('focusout', (e) => {
-        const target = e.target;
-        // 當使用者結束輸入，點擊其他地方時
-        if (target.tagName === 'INPUT' || target.tagName === 'SELECT') {
-            const slide = target.closest('.account-page-slide');
-            // 檢查是否有記錄過位置
-            if (slide && typeof scrollTopBeforeFocus !== 'undefined') {
-                // 稍微延遲後，將內容滾動回原來的位置
                 setTimeout(() => {
-                    slide.scrollTop = scrollTopBeforeFocus;
-                    scrollTopBeforeFocus = undefined; // 清除記錄
-                }, 100); 
+                    const offsetTop = target.closest('.worker-row, .input-section-body > div, .special-task-block')?.offsetTop || target.offsetTop;
+                    slide.scrollTop = offsetTop - 140; 
+                }, 300);
             }
         }
     });
-
-if (window.visualViewport) {
-    let prevHeight = window.visualViewport.height;
-    // 【修改】不再只選取一個 header，因為我們需要控制所有 header
-    // const header = document.querySelector('.account-header'); -> 移除
-
-    window.visualViewport.addEventListener('resize', () => {
-        const vv = window.visualViewport;
-
-        // ⬆️ 鍵盤收合後：恢復原本 scrollTop
-        if (vv.height > prevHeight) {
-            // 【修改】確保選擇當前活動的 slide
-            const activeSlide = document.querySelector(`.account-page-slide[data-index="${currentAccountIndex}"]`);
-            if (activeSlide && typeof scrollTopBeforeFocus === 'number') {
-                activeSlide.scrollTop = scrollTopBeforeFocus;
-            }
-        }
-
-        // 【核心修正】選取所有的 headers 並應用 transform
-        const headers = document.querySelectorAll('.account-header');
-        if (headers.length > 0) {
-            const transformValue = `translateY(${window.visualViewport.offsetTop}px)`;
-            headers.forEach(header => {
-                header.style.transform = transformValue;
-            });
-        }
-
-        prevHeight = vv.height;
-    });
-}
 
 
     function checkAndApplySpecialTaskDeductions() {
@@ -641,7 +536,7 @@ if (window.visualViewport) {
             ['workerApprentice', 'labAssistant'].forEach(specialTaskType => {
                 const specialTask = account.specialTasks[specialTaskType];
 
-                if (!specialTask || !special.level || !specialTask.targetTaskId || !specialTask.startTime) return;
+                if (!specialTask || !specialTask.level || !specialTask.targetTaskId || !specialTask.startTime) return;
 
                 const recordKey = `${accountName}-${specialTask.targetTaskId}-${specialTaskType}`;
                 if (deductionRecords[recordKey] === todayStr) return;
@@ -686,5 +581,3 @@ if (window.visualViewport) {
 
     init();
 });
-
-

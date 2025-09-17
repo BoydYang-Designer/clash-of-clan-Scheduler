@@ -188,11 +188,12 @@ body {
     align-items: center;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-     padding-top: 80px; /* 視 header 高度調整，例如 80px */
+     padding-top: 130px; /* ★ 修改：為 header 和 h2 留出空間 */
+     position: relative; /* ★ 新增：為 absolute header 提供定位上下文 */
 }
 
 .account-header {
-    position: fixed;       /* 原本是 sticky */
+    position: absolute;  /* ★ 修改：改為 absolute，相對於 slide 定位 */
     top: 0;
     left: 0;
     right: 0;
@@ -202,7 +203,7 @@ body {
     justify-content: center;
     align-items: center;
     gap: 20px;
-    padding: 10px;
+    padding: 5px;
     border-bottom: 1px solid var(--color-border);
 }
 
@@ -232,17 +233,21 @@ body {
 
 
 .account-avatar {
-    width: 100px; /* 【修改】縮小頭像尺寸以適應新佈局 */
-    height: 100px;
+    width: 60px; /* ★ 修改：縮小頭像以適應新佈局 */
+    height: 60px;
     border-radius: 50%;
     object-fit: cover;
 }
 
 .account-name {
-    margin-top: 20px; /* 【修改】將帳號名稱移出 header，並調整間距 */
+    margin-top: 90px; /* ★ 修改：將帳號名稱移出 header，並調整間距 */
     margin-bottom: 25px;
-    font-size: 2.5rem;
+    font-size: 2.0rem; /* ★ 修改：略微調整字體大小 */
     text-align: center;
+    position: absolute; /* ★ 新增：同樣相對於 slide 定位 */
+    top: 0;
+    left: 20px;
+    right: 20px;
 }
 
 .account-body {
@@ -672,11 +677,11 @@ body {
 
     /* 調整頭像大小 */
     .account-avatar {
-        width: 120px;
-        height: 120px;
+        width: 60px; /* ★ 保持與桌面版一致 */
+        height: 60px;
     }
     .account-name {
-        font-size: 2rem;
+        font-size: 1.8rem; /* ★ 略微縮小 */
     }
 }
 
