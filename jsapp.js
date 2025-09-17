@@ -516,7 +516,8 @@ accountsPage.addEventListener('input', e => {
             if (slide) {
                 setTimeout(() => {
                     const offsetTop = target.closest('.worker-row, .input-section-body > div, .special-task-block')?.offsetTop || target.offsetTop;
-                    slide.scrollTop = offsetTop - 140; 
+                    // ★ 修正：調整滾動偏移量以適應新的 header 高度
+                    slide.scrollTop = offsetTop - 210; 
                 }, 300);
             }
         }
