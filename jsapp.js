@@ -597,6 +597,19 @@ accountsPage.addEventListener('input', e => {
         }
     });
 
+    if (window.visualViewport) {
+  let prevHeight = window.visualViewport.height;
+  window.visualViewport.addEventListener('resize', () => {
+    const vv = window.visualViewport;
+    if (vv.height > prevHeight) {
+      const activeSlide = document.querySelector('.account-page-slide[data-index]');
+      if (activeSlide && typeof scrollTopBeforeFocus === 'number') {
+        activeSlide.scrollTop = scrollTopBeforeFocus;
+      }
+    }
+    prevHeight = vv.height;
+  });
+}
 
     function checkAndApplySpecialTaskDeductions() {
         const now = new Date();
@@ -656,3 +669,5 @@ accountsPage.addEventListener('input', e => {
 
     init();
 });
+
+
