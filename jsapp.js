@@ -509,17 +509,17 @@ accountsPage.addEventListener('input', e => {
         }
     });
     
+    // ★★★【修改】使用 scrollIntoView 來處理輸入框焦點，避免被鍵盤遮擋 ★★★
     accountsPage.addEventListener('focusin', (e) => {
         const target = e.target;
         if (target.tagName === 'INPUT' || target.tagName === 'SELECT') {
-            const slide = target.closest('.account-page-slide');
-            if (slide) {
-                setTimeout(() => {
-                    const offsetTop = target.closest('.worker-row, .input-section-body > div, .special-task-block')?.offsetTop || target.offsetTop;
-                    // ★ 修正：調整滾動偏移量以適應新的 header 高度
-                    slide.scrollTop = offsetTop - 210; 
-                }, 300);
-            }
+            // 使用 setTimeout 是為了等待虛擬鍵盤彈出動畫完成
+            setTimeout(() => {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+            }, 300);
         }
     });
 
@@ -568,16 +568,21 @@ accountsPage.addEventListener('input', e => {
         }
     }
     
+    // ★★★【修改】使用 CSS 變數來設定應用程式高度 ★★★
     function setAppHeight() {
-        document.getElementById('app-container').style.height = `${window.innerHeight}px`;
+        // 將視窗的內部高度寫入到 :root 的 --app-height 變數中
+        document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
     }
 
     function init() {
         renderAccountPages(ACCOUNTS_CONFIG, appData);
         checkAndApplySpecialTaskDeductions();
-        navigateTo('home-page');
+        
+        // ★★★【修改】應用程式啟動時及視窗大小改變時，都設定一次高度 ★★★
+        setAppHeight(); 
         window.addEventListener('resize', setAppHeight);
-        setAppHeight();
+        
+        navigateTo('home-page');
     }
 
     init();

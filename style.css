@@ -32,7 +32,7 @@ body {
     font-family: var(--font-primary);
     background-color: var(--color-background);
     color: var(--color-text);
-    height: 100vh;
+    height: var(--app-height, 100vh); /* 【修改】使用 JS 變數以避免行動裝置鍵盤問題 */
     overflow: hidden;
     font-size: 18px;
     touch-action: manipulation; /* 【新增】禁止雙擊放大 */
@@ -198,7 +198,7 @@ body {
     justify-content: center;
     align-items: center;
     gap: 20px;
-    padding: 10px;
+    padding: 5px;
     border-bottom: 1px solid var(--color-border);
 }
 
