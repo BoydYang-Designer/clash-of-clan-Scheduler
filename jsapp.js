@@ -597,19 +597,32 @@ accountsPage.addEventListener('input', e => {
         }
     });
 
-    if (window.visualViewport) {
+ if (window.visualViewport) {
   let prevHeight = window.visualViewport.height;
+  const header = document.querySelector('.account-header');
+
+  // 監聽高度變化
   window.visualViewport.addEventListener('resize', () => {
     const vv = window.visualViewport;
+
+    // ⬆️ 鍵盤收合後：恢復原本 scrollTop
     if (vv.height > prevHeight) {
       const activeSlide = document.querySelector('.account-page-slide[data-index]');
       if (activeSlide && typeof scrollTopBeforeFocus === 'number') {
         activeSlide.scrollTop = scrollTopBeforeFocus;
       }
     }
+
+    // 🔑 不論是彈出還是收合，都依 offsetTop 調整 header
+    // offsetTop > 0 代表 visual viewport 被鍵盤往下推
+    if (header) {
+      header.style.transform = `translateY(${window.visualViewport.offsetTop}px)`;
+    }
+
     prevHeight = vv.height;
   });
 }
+
 
     function checkAndApplySpecialTaskDeductions() {
         const now = new Date();
