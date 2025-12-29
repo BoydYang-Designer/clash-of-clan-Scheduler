@@ -1,61 +1,49 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Clash Scheduler</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>個人購物記帳</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet">
-    <script defer src="jsutils.js"></script>
-    <script defer src="jsscheduler.js"></script>
-    <script defer src="jsapp.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div id="loading-overlay" class="loading-overlay">
-        <div class="spinner"></div>
-    </div>
+
+    <header id="main-header">
+        <button id="back-btn" class="icon-btn hidden">←</button>
+        <h1 id="page-title">我的賣場</h1>
+        <button id="action-btn" class="icon-btn">⚙️</button>
+    </header>
 
     <main id="app-container">
+        </main>
 
-        <section id="home-page" class="page active">
-            <div class="home-content">
-                <h1 class="main-title">Clash Scheduler</h1>
-                <div class="home-nav">
-                    <button id="go-to-scheduler-from-home" class="btn btn-primary">查看總排程</button>
-                    <button id="go-to-accounts-from-home" class="btn btn-secondary">編輯帳號任務</button>
-                    <button id="export-json-btn" class="btn btn-secondary">匯出JSON</button>
-                    <button id="import-json-btn" class="btn btn-secondary">匯入JSON</button>
+    <div id="floating-action" class="hidden">
+        <button id="add-item-btn">+</button>
+    </div>
+
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>設定</h2>
+            <div class="setting-group">
+                <h3>資料管理</h3>
+                <button onclick="app.exportData()">匯出資料 (JSON)</button>
+                <div class="file-input-wrapper">
+                    <button>匯入資料 (JSON)</button>
+                    <input type="file" id="import-file" accept=".json" onchange="app.importData(this)">
                 </div>
+                <button onclick="app.resetData()" class="danger-btn">重置資料</button>
             </div>
-        </section>
-
-       <section id="accounts-page" class="page">
-            <div class="account-slider-container">
+            <div class="setting-group">
+                <h3>分類管理</h3>
+                <input type="text" id="new-cat-name" placeholder="分類名稱 (例: IKEA)">
+                <input type="color" id="new-cat-color" value="#333333">
+                <button onclick="app.addNewCategory()">新增賣場分類</button>
             </div>
-            <footer class="slider-footer">
-                <button class="btn btn-primary go-to-scheduler-from-accounts">查看總排程</button>
-                <div class="footer-nav-controls">
-                    <button id="prev-account" class="slider-arrow">‹</button>
-                    <span id="account-indicator">1 / 5</span>
-                    <button id="next-account" class="slider-arrow">›</button>
-                </div>
-            </footer>
-        </section>
+            <button class="close-modal" onclick="app.toggleSettings()">關閉</button>
+        </div>
+    </div>
 
-        <section id="scheduler-page" class="page">
-            <header class="page-header">
-                <h2>今日總排程</h2>
-            </header>
-            <div id="task-list" class="task-list-container">
-            </div>
-            <footer class="page-footer">
-                <button id="go-to-accounts-from-scheduler" class="btn btn-primary">返回帳號任務</button>
-            </footer>
-        </section>
-
-    </main>
-    <input type="file" id="import-file-input" accept=".json" style="display: none;">
+    <script src="app.js"></script>
 </body>
 </html>
