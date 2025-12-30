@@ -130,6 +130,26 @@ h1 { margin: 0; font-size: 1.2rem; }
     cursor: pointer;
 }
 
+/* 新增賣場的專用卡片樣式 */
+.add-new-card {
+    border: 2px dashed #ccc !important; /* 虛線邊框 */
+    background-color: transparent;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.add-new-card:active {
+    background-color: #e0e0e0;
+    transform: scale(0.98);
+}
+
+.add-new-card .cat-count {
+    color: #888;
+}
 /* Modal */
 .modal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
