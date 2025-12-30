@@ -573,8 +573,129 @@ const app = {
         }
     },
 
-    toggleSettings: function() { 
-        document.getElementById('settings-modal').classList.toggle('hidden'); 
+toggleSettings: function() { 
+        const modal = document.getElementById('settings-modal');
+        if (modal.classList.contains('hidden')) {
+            this.renderSettings(); // 開啟前先渲染最新資料
+            modal.classList.remove('hidden');
+        } else {
+            modal.classList.add('hidden');
+        }
+    },
+
+
+    renderSettings: function() {
+        const content = document.getElementById('settings-content');
+        
+        // 1. 生成賣場列表 HTML (更細緻的結構)
+        let catsHtml = this.data.map((cat, index) => `
+            <div class="cat-edit-item">
+                <div class="color-picker-wrapper" title="點擊修改顏色">
+                    <input type="color" value="${cat.color}" 
+                           onchange="app.updateCategoryColor(${index}, this.value)">
+                </div>
+                
+                <input type="text" class="cat-name-input" value="${cat.name}" 
+                       onchange="app.updateCategoryName(${index}, this.value)" 
+                       placeholder="賣場名稱">
+                
+                <button class="cat-delete-btn" onclick="app.deleteCategory(${index})" title="刪除賣場">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
+            </div>
+        `).join('');
+
+        // 2. 組合整個設定畫面 (Header + Body 結構)
+        content.innerHTML = `
+            <div class="modal-header">
+                <h2>設定與管理</h2>
+                <button class="close-modal-btn" onclick="app.toggleSettings()">×</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="setting-section-title">賣場分類與顏色</div>
+                <div class="setting-list">
+                    ${catsHtml}
+                </div>
+                
+                <div class="quick-add-container">
+                    <input type="text" id="quick-new-cat" class="quick-add-input" placeholder="輸入新賣場名稱...">
+                    <button onclick="app.quickAddCategory()" class="quick-add-btn">新增</button>
+                </div>
+
+                <hr style="border:0; border-top:1px solid #f0f0f0; margin: 30px 0 20px 0;">
+
+                <div class="setting-section-title">資料備份與還原</div>
+                <div class="action-grid">
+                    <button onclick="app.exportData()" class="action-btn">
+                        📤 匯出備份
+                    </button>
+                    <label class="action-btn primary" style="display:flex; align-items:center; justify-content:center; margin:0;">
+                        📥 匯入資料
+                        <input type="file" accept=".json" onchange="app.importData(this)" style="display:none;">
+                    </label>
+                </div>
+
+                <div style="margin-top: 30px; text-align: center;">
+                    <button onclick="app.resetData()" class="reset-btn">
+                        清除所有資料並重置
+                    </button>
+                    <div style="font-size:0.75rem; color:#c7c7cc; margin-top:5px;">Version 1.2</div>
+                </div>
+            </div>
+        `;
+    },
+
+    // 3. 新增：快速新增賣場 (給設定頁面用)
+    quickAddCategory: function() {
+        const input = document.getElementById('quick-new-cat');
+        const name = input.value.trim();
+        if (!name) return;
+        
+        // 隨機產生一個顏色
+        const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16);
+        
+        this.data.push({
+            id: Date.now().toString(),
+            name: name,
+            color: randomColor,
+            fields: ['品名', '價格', '購買日期', '備註'],
+            items: []
+        });
+        this.save();
+        this.renderSettings(); // 重新渲染設定列表，讓使用者看到新增的
+        this.renderHome();     // 背景的首頁也要更新
+        input.value = '';
+    },
+
+    // 4. 新增：更新賣場名稱
+    updateCategoryName: function(index, newName) {
+        if (!newName.trim()) {
+            alert("名稱不能為空");
+            this.renderSettings(); // 還原
+            return;
+        }
+        this.data[index].name = newName;
+        this.save();
+        this.renderHome(); // 更新背景首頁
+    },
+
+    // 5. 新增：更新賣場顏色
+    updateCategoryColor: function(index, newColor) {
+        this.data[index].color = newColor;
+        this.save();
+        this.renderHome(); // 更新背景首頁
+    },
+
+    // 6. 修改 Delete Category (增加確認後重新渲染設定頁面)
+    deleteCategory: function(index) {
+        const catName = this.data[index].name;
+        if(confirm(`確定要刪除整個「${catName}」賣場嗎？\n此動作無法復原！`)) {
+            this.data.splice(index, 1);
+            this.save();
+            this.renderSettings(); // 重新渲染列表，移除該項目
+            this.renderHome();     // 更新背景首頁
+        }
     },
 
     exportData: function() {

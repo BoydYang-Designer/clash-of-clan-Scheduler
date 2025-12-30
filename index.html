@@ -29,29 +29,10 @@
         <button id="add-item-btn">+</button>
     </div>
 
-    <div id="settings-modal" class="modal hidden">
-        <div class="modal-content">
-            <h2>設定</h2>
-            <div class="setting-group">
-                <h3>資料管理</h3>
-                <button onclick="app.exportData()">匯出資料 (JSON)</button>
-                <div class="file-input-wrapper">
-                    <button>匯入資料 (JSON)</button>
-                    <input type="file" id="import-file" accept=".json" onchange="app.importData(this)">
-                </div>
-                <button onclick="app.resetData()" class="danger-btn">重置資料</button>
-            </div>
-            <div class="setting-group">
-                <h3>分類管理</h3>
-                <input type="text" id="new-cat-name" placeholder="分類名稱 (例: IKEA)">
-                <input type="color" id="new-cat-color" value="#333333">
-                <button onclick="app.addNewCategory()">新增賣場分類</button>
-            </div>
-            <button class="close-modal" onclick="app.toggleSettings()">關閉</button>
+<div id="settings-modal" class="modal hidden">
+    <div id="settings-content" class="modal-content">
         </div>
-
-        </div>
-    </div> <!-- 結束 settings-modal -->
+</div>
 
     <!-- 新增：欄位編輯器 Modal -->
     <div id="field-editor-modal" class="modal hidden">

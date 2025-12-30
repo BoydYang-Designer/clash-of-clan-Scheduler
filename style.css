@@ -89,11 +89,10 @@ h1#page-title {
     position: sticky;
     top: 60px; /* 緊接在 header 下方 */
     z-index: 99;
-    background: var(--bg-app); /* 這裡不用透明，避免內容重疊太亂 */
+    background: var(--bg-app);
     padding: 8px var(--spacing) 16px var(--spacing);
 }
 
-/* 覆蓋原本 inline style 的暴力解法，透過 CSS 權重 */
 #search-bar-container div[style] {
     background: transparent !important;
     border: none !important;
@@ -102,10 +101,10 @@ h1#page-title {
 
 #global-search-input {
     width: 100% !important;
-    background-color: #e4e4e9 !important; /* iOS 搜尋框背景色 */
+    background-color: #e4e4e9 !important;
     border: none !important;
     border-radius: 10px !important;
-    padding: 10px 16px 10px 40px !important; /* 預留圖示空間 */
+    padding: 10px 16px 10px 40px !important;
     font-size: 16px !important;
     color: var(--text-primary) !important;
     outline: none;
@@ -140,31 +139,8 @@ h1#page-title {
     cursor: pointer;
     transition: transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.2s;
     position: relative;
-    border: none; /* 移除舊有的 border-left */
+    border: none;
     overflow: hidden;
-}
-
-/* 重新設計 border-left 為側邊光條 */
-.cat-card::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 6px;
-    background-color: var(--theme-color, #ccc); /* 需要 JS 的 inline style 配合，但 CSS 無法直接讀取 inline style 的 border-color。 
-                                                   因為 JS 寫死 border-left，我們這裡讓它保持原樣，
-                                                   但透過 Masking 或是 Flex 把那個 border 藏起來有點難。
-                                                   
-                                                   策略：讓原本 JS 的 border-left 成為視覺的一部分，
-                                                   但透過 CSS 讓卡片更圓潤。
-                                                */
-}
-
-/* 由於 JS 是寫 `style="border-left: 5px solid ..."`，我們保留它，但修飾卡片 */
-.cat-card {
-    /* 讓 JS 的 border-left 看起來像設計的一部分 */
-    border-radius: var(--radius-l); 
 }
 
 .cat-card:active {
@@ -187,7 +163,7 @@ h1#page-title {
 
 /* 新增賣場按鈕特殊樣式 */
 .add-new-card {
-    border: 2px dashed #D1D1D6 !important; /* 蓋過 inline styles */
+    border: 2px dashed #D1D1D6 !important;
     background-color: transparent;
     box-shadow: none;
     align-items: center;
@@ -209,7 +185,6 @@ h1#page-title {
     padding: 0 var(--spacing); 
 }
 
-/* 單一商品卡片 */
 .item-card {
     background: var(--bg-card);
     border-radius: var(--radius-l);
@@ -226,7 +201,6 @@ h1#page-title {
     transform: scale(0.98);
 }
 
-/* 圖片樣式 */
 .item-img {
     width: 72px;
     height: 72px;
@@ -258,18 +232,18 @@ h1#page-title {
 }
 
 .item-price {
-    color: var(--text-primary); /* 改為深色，更顯專業 */
+    color: var(--text-primary);
     font-weight: 700;
     margin-top: 6px;
     font-size: 1rem;
     display: inline-block;
-    background: #f0f0f5; /* 價格小標籤背景 */
+    background: #f0f0f5;
     padding: 2px 8px;
     border-radius: 6px;
-    font-feature-settings: "tnum"; /* 等寬數字 */
+    font-feature-settings: "tnum";
 }
 
-/* --- Group Card: 群組樣式優化 --- */
+/* --- Group Card: 群組樣式 --- */
 .group-card {
     background-color: var(--bg-card);
     border-radius: var(--radius-l);
@@ -332,14 +306,13 @@ h1#page-title {
     color: var(--color-primary);
 }
 
-/* 群組展開列表 */
 .group-list {
-    background: #FAFAFC; /* 稍微深一點的背景區隔子項目 */
+    background: #FAFAFC;
     border-top: 1px solid rgba(0,0,0,0.03);
 }
 
 .sub-item {
-    padding: 14px 16px 14px 48px; /* 增加左側縮排 */
+    padding: 14px 16px 14px 48px;
     border-bottom: 1px solid rgba(0,0,0,0.03);
     display: flex;
     justify-content: space-between;
@@ -348,7 +321,6 @@ h1#page-title {
     position: relative;
 }
 
-/* 裝飾線，讓子項目看起來有關聯 */
 .sub-item::before {
     content: '';
     position: absolute;
@@ -374,7 +346,7 @@ h1#page-title {
     font-feature-settings: "tnum";
 }
 
-/* --- Sort Container: 排序選單 --- */
+/* --- Sort Container --- */
 .sort-container {
     padding: 10px var(--spacing);
     display: flex;
@@ -394,7 +366,6 @@ h1#page-title {
     color: var(--text-primary);
     font-weight: 500;
     outline: none;
-    /* 自訂箭頭 */
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 10px center;
@@ -411,23 +382,240 @@ h1#page-title {
     color: var(--text-primary);
 }
 
-/* --- Forms & Modals: 表單與彈窗 --- */
+/* --- Modals: 核心彈窗樣式 (包含設定與圖片) --- */
 .modal {
-    background: rgba(0,0,0,0.4);
-    backdrop-filter: blur(5px); /* 讓背景模糊 */
-    transition: opacity 0.3s;
+    position: fixed; /* 關鍵修正：確保浮動在視窗最上層 */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 2000; /* 確保高於 Header */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 1;
+    transition: opacity 0.25s ease;
 }
 
+.modal.hidden {
+    display: none !important;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* 設定/編輯 Modal 卡片本體 */
 .modal-content {
-    background: var(--bg-card);
+    background: #ffffff;
     width: 90%;
     max-width: 420px;
-    padding: 24px;
-    border-radius: 20px;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-    border: 1px solid rgba(255,255,255,0.1);
+    max-height: 85vh;
+    border-radius: 24px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0;
+    animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+@keyframes modalSlideUp {
+    from { transform: translateY(20px) scale(0.96); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* 設定頁面：Header */
+.modal-header {
+    padding: 18px 24px;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1c1c1e;
+}
+
+.close-modal-btn {
+    background: #f2f2f7;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    color: #8e8e93;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.close-modal-btn:hover { background: #e5e5ea; color: #1c1c1e; }
+
+/* 設定頁面：內容區 */
+.modal-body {
+    padding: 24px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.setting-section-title {
+    font-size: 0.8rem;
+    color: #8e8e93;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+    font-weight: 600;
+    margin-top: 8px;
+}
+
+.setting-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 30px;
+}
+
+/* 設定頁面：單一賣場膠囊樣式 */
+.cat-edit-item {
+    display: flex;
+    align-items: center;
+    background: #f9f9fa;
+    padding: 8px 12px 8px 8px;
+    border-radius: 14px;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+}
+
+.cat-edit-item:focus-within {
+    background: #fff;
+    border-color: #007aff;
+    box-shadow: 0 4px 12px rgba(0, 122, 255, 0.1);
+}
+
+/* 設定頁面：圓形顏色選擇器 */
+.color-picker-wrapper {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    position: relative;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.color-picker-wrapper input[type="color"] {
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    padding: 0;
+    border: none;
+    cursor: pointer;
+}
+
+.cat-name-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 0 5px;
+    font-size: 1rem;
+    color: #333;
+    outline: none;
+    font-weight: 500;
+}
+
+.cat-delete-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: #ff3b30;
+    opacity: 0.6;
+    cursor: pointer;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+.cat-delete-btn:hover { background: #ffe5e5; opacity: 1; }
+
+/* 設定頁面：快速新增 */
+.quick-add-container {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+.quick-add-input {
+    flex: 1;
+    background: #f2f2f7;
+    border: none;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    outline: none;
+}
+.quick-add-btn {
+    background: #1c1c1e;
+    color: #fff;
+    border: none;
+    padding: 0 20px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* 設定頁面：按鈕群組 */
+.action-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.action-btn {
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    transition: transform 0.1s;
+    background: #f2f2f7;
+    color: #007aff;
+}
+.action-btn:active { transform: scale(0.98); }
+.action-btn.primary { background: #007aff; color: #fff; }
+
+.reset-btn {
+    width: 100%;
+    margin-top: 10px;
+    background: transparent;
+    color: #ff3b30;
+    font-size: 0.9rem;
+    padding: 12px;
+    border: none;
+    cursor: pointer;
+}
+.reset-btn:hover { text-decoration: underline; }
+
+
+/* --- General Form Elements (新增/編輯商品用) --- */
 .form-container {
     padding: var(--spacing);
 }
@@ -440,7 +628,6 @@ h1#page-title {
     color: var(--text-primary);
 }
 
-/* 現代化輸入框 */
 .form-group input, 
 .form-group textarea {
     width: 100%;
@@ -459,7 +646,7 @@ h1#page-title {
     outline: none;
 }
 
-/* --- Buttons: 按鈕系統 --- */
+/* --- Buttons --- */
 .btn-primary {
     width: 100%;
     padding: 16px;
@@ -480,41 +667,33 @@ h1#page-title {
     opacity: 0.9;
 }
 
-/* 刪除按鈕 */
 .btn-delete {
-    background: rgba(255, 59, 48, 0.1); /* 淺紅色背景 */
-    color: var(--color-danger);
-    box-shadow: none;
-}
-
-.btn-delete:active {
-    background: rgba(255, 59, 48, 0.2);
-}
-
-/* 設定 Modal 內的按鈕 */
-.setting-group button {
+    width: 100%;
+    padding: 16px;
     border: none;
-    background: var(--bg-input);
-    color: var(--text-primary);
-    font-weight: 500;
-    padding: 14px;
-    border-radius: 12px;
-    text-align: left;
+    border-radius: 14px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 10px;
+    background: rgba(255, 59, 48, 0.1);
+    color: var(--color-danger);
 }
-.setting-group button:active { background: #d1d1d6; }
-.setting-group .danger-btn { color: var(--color-danger); }
+.btn-delete:active { background: rgba(255, 59, 48, 0.2); }
 
 /* --- FAB: 浮動新增按鈕 --- */
 #floating-action {
+    position: fixed;
     bottom: 30px;
     right: 20px;
+    z-index: 150; /* 介於 Header 與 Modal 之間 */
 }
 
 #add-item-btn {
     width: 60px;
     height: 60px;
     border-radius: 30px;
-    background: var(--text-primary); /* 純黑背景更時尚 */
+    background: var(--text-primary);
     color: #fff;
     border: none;
     font-size: 2rem;
@@ -525,7 +704,7 @@ h1#page-title {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding-bottom: 4px; /* 微調 + 號置中 */
+    padding-bottom: 4px;
 }
 
 #add-item-btn:active {
@@ -533,13 +712,12 @@ h1#page-title {
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
 }
 
-/* --- Search Results: 搜尋結果優化 --- */
+/* --- Search Results --- */
 .search-result-item {
     background: var(--bg-card);
     margin-bottom: 12px;
     padding: 16px;
     border-radius: var(--radius-l);
-    /* 這裡必須保留 JS 的 border-left color，但我們可以改用 box-shadow 模擬 */
     box-shadow: var(--shadow-card);
     display: flex;
     justify-content: space-between;
@@ -566,15 +744,20 @@ h1#page-title {
 }
 
 .close-img-btn {
+    position: absolute;
     top: 30px;
     right: 30px;
     background: rgba(0,0,0,0.5);
     width: 40px;
     height: 40px;
     border-radius: 50%;
+    color: white;
+    font-size: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
     line-height: 0;
     padding-bottom: 4px;
+    cursor: pointer;
+    z-index: 2100;
 }
