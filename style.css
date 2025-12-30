@@ -62,6 +62,20 @@ h1#page-title {
     font-weight: 600;
     color: var(--text-primary);
     letter-spacing: -0.02em;
+    display: flex;
+    flex-direction: column; 
+    align-items: center;   
+    justify-content: center;
+    line-height: 1.1;       
+}
+
+#last-updated-time {
+    display: block;        
+    font-size: 0.7rem;     
+    color: #8E8E93;        
+    font-weight: 400;      
+    margin-top: 2px;       
+    letter-spacing: 0.5px; 
 }
 
 .icon-btn { 
@@ -84,7 +98,7 @@ h1#page-title {
 
 .hidden { display: none !important; }
 
-/* --- Search Bar: 現代化搜尋欄 --- */
+/* --- Search Bar --- */
 #search-bar-container {
     position: sticky;
     top: 60px; /* 緊接在 header 下方 */
@@ -119,7 +133,7 @@ h1#page-title {
     box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.15);
 }
 
-/* --- Category Grid: 首頁分類 --- */
+/* --- Category Grid --- */
 .category-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -161,7 +175,6 @@ h1#page-title {
     font-weight: 500;
 }
 
-/* 新增賣場按鈕特殊樣式 */
 .add-new-card {
     border: 2px dashed #D1D1D6 !important;
     background-color: transparent;
@@ -180,7 +193,7 @@ h1#page-title {
     font-weight: 300;
 }
 
-/* --- Item List & Groups: 商品列表 --- */
+/* --- Item List & Groups --- */
 .item-list { 
     padding: 0 var(--spacing); 
 }
@@ -243,7 +256,7 @@ h1#page-title {
     font-feature-settings: "tnum";
 }
 
-/* --- Group Card: 群組樣式 --- */
+/* --- Group Card --- */
 .group-card {
     background-color: var(--bg-card);
     border-radius: var(--radius-l);
@@ -382,9 +395,9 @@ h1#page-title {
     color: var(--text-primary);
 }
 
-/* --- Modals: 核心彈窗樣式 (包含設定與圖片) --- */
+/* --- Modals --- */
 .modal {
-    position: fixed; /* 關鍵修正：確保浮動在視窗最上層 */
+    position: fixed;
     top: 0;
     left: 0;
     width: 100%;
@@ -392,7 +405,7 @@ h1#page-title {
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    z-index: 2000; /* 確保高於 Header */
+    z-index: 2000;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -406,7 +419,6 @@ h1#page-title {
     pointer-events: none;
 }
 
-/* 設定/編輯 Modal 卡片本體 */
 .modal-content {
     background: #ffffff;
     width: 90%;
@@ -426,7 +438,7 @@ h1#page-title {
     to { transform: translateY(0) scale(1); opacity: 1; }
 }
 
-/* 設定頁面：Header */
+/* Modal Header */
 .modal-header {
     padding: 18px 24px;
     border-bottom: 1px solid #f0f0f0;
@@ -462,7 +474,7 @@ h1#page-title {
 }
 .close-modal-btn:hover { background: #e5e5ea; color: #1c1c1e; }
 
-/* 設定頁面：內容區 */
+/* Modal Body */
 .modal-body {
     padding: 24px;
     overflow-y: auto;
@@ -486,7 +498,6 @@ h1#page-title {
     margin-bottom: 30px;
 }
 
-/* 設定頁面：單一賣場膠囊樣式 */
 .cat-edit-item {
     display: flex;
     align-items: center;
@@ -503,7 +514,6 @@ h1#page-title {
     box-shadow: 0 4px 12px rgba(0, 122, 255, 0.1);
 }
 
-/* 設定頁面：圓形顏色選擇器 */
 .color-picker-wrapper {
     width: 36px;
     height: 36px;
@@ -555,7 +565,6 @@ h1#page-title {
 }
 .cat-delete-btn:hover { background: #ffe5e5; opacity: 1; }
 
-/* 設定頁面：快速新增 */
 .quick-add-container {
     display: flex;
     gap: 8px;
@@ -580,7 +589,6 @@ h1#page-title {
     cursor: pointer;
 }
 
-/* 設定頁面：按鈕群組 */
 .action-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -614,8 +622,7 @@ h1#page-title {
 }
 .reset-btn:hover { text-decoration: underline; }
 
-
-/* --- General Form Elements (新增/編輯商品用) --- */
+/* --- Form Elements --- */
 .form-container {
     padding: var(--spacing);
 }
@@ -646,7 +653,45 @@ h1#page-title {
     outline: none;
 }
 
-/* --- Buttons --- */
+/* --- New Button Design & Groups --- */
+
+/* 按鈕容器：讓按鈕之間有呼吸空間 */
+.action-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+/* 編輯欄位按鈕：改為 iOS 列表樣式，看起來更像設定選項 */
+.btn-field-editor {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 16px;
+    background: #fff;
+    color: var(--text-primary);
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    margin-bottom: 10px;
+    transition: background 0.2s;
+}
+.btn-field-editor:active {
+    background: #f2f2f7;
+}
+.btn-field-editor::after {
+    content: '›';
+    font-size: 1.4rem;
+    color: #C7C7CC;
+    font-weight: 300;
+}
+
+/* 主要按鈕 (確認/更新) */
 .btn-primary {
     width: 100%;
     padding: 16px;
@@ -656,37 +701,60 @@ h1#page-title {
     border-radius: 14px;
     font-size: 1rem;
     font-weight: 600;
-    margin-top: 20px;
     cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 122, 255, 0.25);
     transition: transform 0.1s, opacity 0.2s;
-    box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+    margin: 0;
 }
-
 .btn-primary:active {
     transform: scale(0.98);
     opacity: 0.9;
 }
 
+/* 綠色按鈕 (再次購買) */
+.btn-success {
+    background: var(--color-success); /* iOS Green */
+    box-shadow: 0 4px 12px rgba(52, 199, 89, 0.25);
+}
+.btn-success:active {
+    background: #2db350;
+}
+
+/* 刪除按鈕：弱化視覺，只保留文字與淺色背景 */
 .btn-delete {
     width: 100%;
-    padding: 16px;
+    padding: 14px;
     border: none;
-    border-radius: 14px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    margin-top: 10px;
-    background: rgba(255, 59, 48, 0.1);
+    background: transparent;
     color: var(--color-danger);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 8px;
+    border-radius: 12px;
+    transition: background 0.2s;
 }
-.btn-delete:active { background: rgba(255, 59, 48, 0.2); }
+.btn-delete:active {
+    background: rgba(255, 59, 48, 0.1);
+}
 
-/* --- FAB: 浮動新增按鈕 --- */
+/* 拖曳中的項目樣式 */
+.draggable-item {
+    touch-action: none; /* 防止拖曳時觸發捲動 */
+}
+.draggable-item.dragging {
+    opacity: 0.5;
+    background: #f0f0f0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transform: scale(1.02);
+}
+
+/* --- FAB --- */
 #floating-action {
     position: fixed;
     bottom: 30px;
     right: 20px;
-    z-index: 150; /* 介於 Header 與 Modal 之間 */
+    z-index: 150;
 }
 
 #add-item-btn {
@@ -762,25 +830,92 @@ h1#page-title {
     z-index: 2100;
 }
 
+/* --- Field Editor Modal Layout Fixes --- */
 
-/* 修改標題容器：使用 Flex 直向排列，讓日期乖乖待在標題下方 */
-#page-title {
-    display: flex;
-    flex-direction: column; /* 垂直排列 */
-    align-items: center;    /* 水平置中 */
-    justify-content: center;
-    font-size: 1.2rem;      /* 主標題大小 */
-    font-weight: 700;
-    line-height: 1.1;       /* 縮小行高，讓日期不要離標題太遠 */
-    margin: 0;              /* 清除多餘邊距 */
+/* 1. 針對欄位編輯器的 Modal Content 特殊調整 */
+.field-editor-content {
+    display: flex !important;
+    flex-direction: column !important;
+    max-height: 80vh !important; /* 限制最大高度，確保不會超出畫面 */
+    height: 80vh; /* 在手機上盡量佔滿高度，體驗較好 */
+    overflow: hidden !important; /* 外層不捲動 */
 }
 
-/* 修改日期樣式：微調大小與顏色，讓它像個副標題 */
-#last-updated-time {
-    display: block;         /* 確保它自己佔一行 */
-    font-size: 0.7rem;      /* 字體縮小 */
-    color: #8E8E93;         /* 使用質感灰 (iOS Secondary Label Color) */
-    font-weight: 400;       /* 細體 */
-    margin-top: 2px;        /* 與上方標題保持微小距離 */
-    letter-spacing: 0.5px;  /* 增加一點字距 */
+/* 2. 標題區 (Header) */
+.field-editor-content .modal-header {
+    flex-shrink: 0; /* 禁止縮小 */
+    z-index: 10;
+    box-shadow: 0 1px 0px rgba(0,0,0,0.05); /* 輕微底線 */
+}
+
+/* 3. 列表區 (Body) - 只有這裡捲動 */
+.field-editor-content .modal-body {
+    flex: 1; /* 佔滿剩餘空間 */
+    overflow-y: auto; /* 垂直捲動 */
+    padding: 20px 24px; /* 增加內距，解決陰影/邊角被切到的問題 */
+    
+    /* 讓捲動更滑順 */
+    -webkit-overflow-scrolling: touch; 
+}
+
+/* 修正：確保拖曳項目有足夠空間顯示陰影 */
+.field-editor-content #fields-list {
+    padding-bottom: 20px; 
+}
+
+/* 4. 底部區 (Footer) - 固定顯示 */
+.field-editor-content .modal-footer {
+    flex-shrink: 0; /* 禁止縮小 */
+    padding: 16px 24px;
+    background: #fff;
+    border-top: 1px solid rgba(0,0,0,0.05);
+    z-index: 20; /* 確保浮在列表上方 */
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.02); /* 輕微往上的陰影 */
+}
+
+/* 5. 底部按鈕樣式優化 */
+#new-field-input {
+    background: #F2F2F7;
+    border: none;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 1rem;
+}
+
+.btn-action-add {
+    flex: 1;
+    background: #007AFF;
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+.btn-action-add:active { background: #005bbd; }
+
+.btn-action-done {
+    flex: 1;
+    background: #E5E5EA; /* iOS 淺灰按鈕 */
+    color: #1C1C1E;
+    border: none;
+    padding: 14px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+.btn-action-done:active { background: #d1d1d6; }
+
+/* 隱藏捲軸但保持功能 (Optional: 讓畫面更乾淨) */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(0,0,0,0.1);
+    border-radius: 3px;
 }

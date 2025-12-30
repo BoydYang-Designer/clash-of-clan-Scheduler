@@ -19,36 +19,31 @@ const app = {
             try {
                 const response = await fetch('data.json');
                 this.data = await response.json();
-                // 注意：這裡讀取預設檔案，我們 "不" 執行 save()，
-                // 這樣時間就不會變成現在，而是保持 null 或顯示「尚無更新」
             } catch (e) {
                 console.error("無法讀取 data.json", e);
                 this.data = [];
             }
         }
 
-        // 2. 處理時間載入 (修正邏輯：只讀取，不預設為 Date.now)
+        // 2. 處理時間載入
         if (storedTime) {
             this.lastUpdated = parseInt(storedTime);
         } else {
-            // 如果從來沒有紀錄過時間 (例如第一次開啟)，保持 null
             this.lastUpdated = null;
         }
 
-        this.updateTimeUI(); // 更新介面
+        this.updateTimeUI(); 
         this.renderHome();
         this.setupEventListeners();
     },
 
-    // save 函式：預設 updateTimestamp 為 true，只有特殊情況才傳 false
     save: function(updateTimestamp = true) {
         if (updateTimestamp) {
-            this.lastUpdated = Date.now(); // 只有在這裡才會更新時間
+            this.lastUpdated = Date.now();
         }
         
         localStorage.setItem('shopData', JSON.stringify(this.data));
         
-        // 如果有時間才儲存時間 (避免 null 被轉成字串)
         if (this.lastUpdated) {
             localStorage.setItem('shopLastUpdated', this.lastUpdated.toString());
         }
@@ -60,17 +55,15 @@ const app = {
         const el = document.getElementById('last-updated-time');
         if (!el) return;
 
-        // 如果沒有時間紀錄 (例如第一次使用且還沒編輯過)，就不顯示或顯示預設文字
         if (!this.lastUpdated) {
-            el.textContent = ""; // 保持空白，或者你可以寫 "尚無更新紀錄"
-            el.style.display = 'none'; // 隱藏元素以節省空間
+            el.textContent = ""; 
+            el.style.display = 'none'; 
             return;
         }
 
-        el.style.display = 'block'; // 確保顯示
+        el.style.display = 'block'; 
         const date = new Date(this.lastUpdated);
         
-        // 格式化：2025/12/30 16:09
         const year = date.getFullYear();
         const month = (date.getMonth() + 1).toString().padStart(2, '0');
         const day = date.getDate().toString().padStart(2, '0');
@@ -81,11 +74,10 @@ const app = {
     },
 
     setupEventListeners: function() {
-        // 返回按鈕 (修改：支援清空搜尋)
+        // 返回按鈕
         document.getElementById('back-btn').addEventListener('click', () => {
             const searchInput = document.getElementById('global-search-input');
             
-            // 如果搜尋框有字，代表正在搜尋模式，則清空並回首頁
             if (searchInput && searchInput.value.trim() !== "") {
                 searchInput.value = ""; 
                 this.renderHome();
@@ -140,17 +132,16 @@ const app = {
         const searchBar = document.getElementById('search-bar-container');
 
         const header = document.getElementById('main-header');
-        header.style.borderLeft = 'none'; // 或 '5px solid transparent'
+        header.style.borderLeft = 'none'; 
 
         container.innerHTML = ''; 
         
-        // 修改：標題包含日期顯示區塊
         headerTitle.innerHTML = `我的賣場<span id="last-updated-time"></span>`;
-        this.updateTimeUI(); // 重新渲染後要再次填入時間
+        this.updateTimeUI(); 
 
         backBtn.classList.add('hidden');
         fab.classList.add('hidden');
-        if (searchBar) searchBar.classList.remove('hidden'); // 顯示搜尋欄
+        if (searchBar) searchBar.classList.remove('hidden'); 
         
         this.currentCategoryIndex = null;
         this.editingItemIndex = null;
@@ -188,7 +179,6 @@ const app = {
         container.appendChild(grid);
     },
 
-    // --- 搜尋功能 ---
     performSearch: function(keyword) {
         const container = document.getElementById('app-container');
         const searchBar = document.getElementById('search-bar-container');
@@ -199,7 +189,6 @@ const app = {
         keyword = keyword.trim();
         
         if (!keyword) {
-            // 清空搜尋 → 回到首頁
             this.renderHome();
             return;
         }
@@ -207,7 +196,6 @@ const app = {
         const header = document.getElementById('main-header');
         header.style.borderLeft = 'none';
 
-        // 進入搜尋模式
         if (searchBar) searchBar.classList.remove('hidden');
         pageTitle.innerText = `搜尋：${keyword}`;
         backBtn.classList.remove('hidden');
@@ -238,7 +226,6 @@ const app = {
             return;
         }
 
-        // 依日期新→舊排序
         results.sort((a, b) => {
             const dateA = a[a._keys.date] || '';
             const dateB = b[b._keys.date] || '';
@@ -307,7 +294,7 @@ const app = {
         document.getElementById('page-title').innerText = category.name;
         document.getElementById('back-btn').classList.remove('hidden');
         document.getElementById('floating-action').classList.remove('hidden');
-        if (searchBar) searchBar.classList.add('hidden'); // 進入類別時隱藏搜尋欄
+        if (searchBar) searchBar.classList.add('hidden'); 
 
         const keys = this.identifyFields(category);
 
@@ -399,7 +386,6 @@ const app = {
         });
 
         const listHtml = groupArray.map((group, gIndex) => {
-            const firstItem = group.items[0];
             let imgHtml = '';
             if (group.name && group.name !== '未命名') {
                 const imgSrc = `./images/${encodeURIComponent(group.name)}.jpg`;
@@ -509,24 +495,40 @@ const app = {
             ℹ️ 圖片系統：請將圖檔命名為 <b>${keys.title || '品名'}.jpg</b> 並放入 images 資料夾
         </p>`;
 
+        // --- 新設計的按鈕區域 ---
+        
+        // 1. 編輯欄位 (列表樣式)
         html += `
-            <div style="margin:20px 0; padding:15px; background:#f9f9f9; border-radius:8px;">
-                <div onclick="app.openFieldEditor()" style="color:#007aff; cursor:pointer; font-weight:500; text-align:center; padding:12px; background:#fff; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.1);">
-                    ✏️ 編輯欄位（新增、刪除、調整順序）
-                </div>
+            <div style="margin-top: 30px;">
+                <button type="button" class="btn-field-editor" onclick="app.openFieldEditor()">
+                    <span>✏️ 管理商品欄位</span>
+                </button>
             </div>`;
 
-        html += `<button type="button" class="btn-primary" onclick="app.saveItem()" style="width:100%;"> ${isNew ? '確認新增' : '更新資料'} </button>`;
+        // 2. 主要動作區 (更新 + 再次購買)
+        html += `<div class="action-group">`;
+        
+        html += `<button type="button" class="btn-primary" onclick="app.saveItem()">
+                    ${isNew ? '確認新增' : '儲存變更'}
+                 </button>`;
 
         if (!isNew) {
             html += `
-            <button type="button" class="btn-primary" onclick="app.saveAsNew()" style="width:100%; margin-top:10px; background-color: #28a745;">
-                ＋ 再次購買 (另存為新紀錄)
+            <button type="button" class="btn-primary btn-success" onclick="app.saveAsNew()">
+                ＋ 再次購買 <span style="font-size:0.85em; opacity:0.9; font-weight:400;">(另存新紀錄)</span>
             </button>`;
         }
+        
+        html += `</div>`; // End action-group
 
+        // 3. 刪除按鈕 (獨立，最下方)
         if (!isNew) {
-            html += `<button type="button" class="btn-delete" onclick="app.deleteItem(${itemIndex})" style="width:100%; margin-top:10px;">刪除商品</button>`;
+            html += `
+            <div style="margin-top: 10px; text-align: center;">
+                <button type="button" class="btn-delete" onclick="app.deleteItem(${itemIndex})">
+                    刪除此商品
+                </button>
+            </div>`;
         }
         
         html += '</form></div>';
@@ -539,32 +541,102 @@ const app = {
         const category = this.data[catIndex];
         const fieldsList = document.getElementById('fields-list');
         fieldsList.innerHTML = '';
+
+        // 拖曳相關變數
+        let draggedItem = null;
+        let draggedIndex = null;
+
         category.fields.forEach((field, index) => {
             const item = document.createElement('div');
-            item.style.cssText = `display: flex; align-items: center; padding: 12px; background: #fff; margin-bottom: 8px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); cursor: move; user-select: none;`;
-            item.draggable = true;
+            item.className = 'draggable-item';
+            // 基本樣式，搭配 CSS 類別使用
+            item.style.cssText = `display: flex; align-items: center; padding: 14px; background: #fff; margin-bottom: 8px; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: grab; user-select: none; touch-action: none;`;
             item.dataset.index = index;
-            item.innerHTML = `<span style="flex:1; font-weight:500;">${field}</span><span style="color:#ff3b30; cursor:pointer; font-size:1.2rem; padding:8px;" onclick="event.stopPropagation(); app.deleteFieldFromEditor(${index})">✕</span>`;
-            item.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', index); item.style.opacity = '0.5'; });
+            
+            item.innerHTML = `
+                <span style="color:#ccc; margin-right:12px; font-size:1.2rem;">≡</span>
+                <span style="flex:1; font-weight:500;">${field}</span>
+                <span style="color:#ff3b30; cursor:pointer; font-size:1.1rem; padding:8px;" onclick="event.stopPropagation(); app.deleteFieldFromEditor(${index})">✕</span>
+            `;
+            
+            // --- 電腦版 Drag Events ---
+            item.draggable = true;
+            item.addEventListener('dragstart', (e) => { 
+                e.dataTransfer.setData('text/plain', index); 
+                item.style.opacity = '0.5'; 
+            });
             item.addEventListener('dragend', () => { item.style.opacity = '1'; });
             item.addEventListener('dragover', (e) => { e.preventDefault(); });
             item.addEventListener('drop', (e) => {
                 e.preventDefault(); e.stopPropagation();
                 const fromIndex = parseInt(e.dataTransfer.getData('text'));
-                const toIndex = index;
-                if (fromIndex !== toIndex) {
-                    const fields = [...category.fields];
-                    const [moved] = fields.splice(fromIndex, 1);
-                    fields.splice(toIndex, 0, moved);
-                    category.fields = fields;
-                    this.save();
-                    this.openFieldEditor();
-                }
+                this.swapFields(fromIndex, index);
             });
+
+            // --- 手機版 Touch Events (修復無法拖曳問題) ---
+            
+            // 1. 手指按下
+            item.addEventListener('touchstart', (e) => {
+                draggedItem = item;
+                draggedIndex = index;
+                item.style.opacity = '0.6';
+                item.style.background = '#f9f9f9';
+                item.style.transform = 'scale(1.02)';
+                item.style.zIndex = '1000';
+            }, {passive: false});
+
+            // 2. 手指移動 (防止畫面捲動)
+            item.addEventListener('touchmove', (e) => {
+                if (draggedItem) {
+                    e.preventDefault(); 
+                }
+            }, {passive: false});
+
+            // 3. 手指放開
+            item.addEventListener('touchend', (e) => {
+                if (!draggedItem) return;
+
+                // 恢復樣式
+                item.style.opacity = '1';
+                item.style.background = '#fff';
+                item.style.transform = 'none';
+                item.style.zIndex = '';
+
+                // 取得手指放開位置的元素
+                const touch = e.changedTouches[0];
+                const elementUnderFinger = document.elementFromPoint(touch.clientX, touch.clientY);
+                const targetItem = elementUnderFinger ? elementUnderFinger.closest('.draggable-item') : null;
+
+                if (targetItem && targetItem.dataset.index !== undefined) {
+                    const toIndex = parseInt(targetItem.dataset.index);
+                    if (draggedIndex !== null && draggedIndex !== toIndex) {
+                        this.swapFields(draggedIndex, toIndex);
+                    }
+                }
+
+                draggedItem = null;
+                draggedIndex = null;
+            });
+
             fieldsList.appendChild(item);
         });
         document.getElementById('field-editor-modal').classList.remove('hidden');
         setTimeout(() => document.getElementById('new-field-input').focus(), 100);
+    },
+
+    // 輔助函式：交換欄位
+    swapFields: function(fromIndex, toIndex) {
+        if (fromIndex === toIndex) return;
+        
+        const category = this.data[this.currentCategoryIndex];
+        const fields = [...category.fields];
+        
+        const [moved] = fields.splice(fromIndex, 1);
+        fields.splice(toIndex, 0, moved);
+        
+        category.fields = fields;
+        this.save();
+        this.openFieldEditor(); // 重新渲染列表
     },
 
     closeFieldEditor: function() {
@@ -649,7 +721,7 @@ const app = {
     toggleSettings: function() { 
         const modal = document.getElementById('settings-modal');
         if (modal.classList.contains('hidden')) {
-            this.renderSettings(); // 開啟前先渲染最新資料
+            this.renderSettings(); 
             modal.classList.remove('hidden');
         } else {
             modal.classList.add('hidden');
@@ -710,7 +782,7 @@ const app = {
                     <button onclick="app.resetData()" class="reset-btn">
                         清除所有資料並重置
                     </button>
-                    <div style="font-size:0.75rem; color:#c7c7cc; margin-top:5px;">Version 1.2</div>
+                    <div style="font-size:0.75rem; color:#c7c7cc; margin-top:5px;">Version 1.3</div>
                 </div>
             </div>
         `;
@@ -753,7 +825,6 @@ const app = {
         this.renderHome(); 
     },
 
-    // 修改：匯出時包含時間戳記
     exportData: function() {
         const exportObj = {
             timestamp: this.lastUpdated || Date.now(),
@@ -768,7 +839,6 @@ const app = {
         downloadAnchorNode.remove();
     },
 
-    // 修改：匯入時讀取時間戳記
     importData: function(input) {
         const file = input.files[0];
         if(!file) return;
@@ -778,18 +848,14 @@ const app = {
                 const json = JSON.parse(e.target.result);
                 if(confirm("這將會覆蓋目前的資料，確定嗎？")) {
                     
-                    // 判斷是否為新格式 (含 timestamp)
                     if (json.data && Array.isArray(json.data)) {
                         this.data = json.data;
-                        // 如果有時間就用匯入的，沒有就用現在
                         this.lastUpdated = json.timestamp || Date.now();
                     } else if (Array.isArray(json)) {
-                        // 舊格式：純陣列
                         this.data = json;
-                        this.lastUpdated = Date.now(); // 視為全新匯入
+                        this.lastUpdated = Date.now(); 
                     }
                     
-                    // 儲存但不覆寫時間為「現在」(false 參數)
                     this.save(false);
                     
                     this.toggleSettings();
@@ -803,25 +869,8 @@ const app = {
     resetData: function() {
         if(confirm("警告：這將清空所有資料！")) {
             localStorage.removeItem('shopData');
-            localStorage.removeItem('shopLastUpdated'); // 同時清除時間
+            localStorage.removeItem('shopLastUpdated'); 
             location.reload();
-        }
-    },
-
-    addNewCategory: function() {
-        const name = document.getElementById('new-cat-name').value.trim();
-        const color = document.getElementById('new-cat-color').value;
-        if(name) {
-            this.data.push({
-                id: Date.now().toString(),
-                name: name,
-                color: color,
-                fields: ['品名', '價格', '購買日期', '備註'],
-                items: []
-            });
-            this.save();
-            this.toggleSettings();
-            this.renderHome();
         }
     },
 
@@ -830,8 +879,8 @@ const app = {
         if(confirm(`確定要刪除整個「${catName}」賣場嗎？\n此動作無法復原！`)) {
             this.data.splice(index, 1);
             this.save();
-            this.renderSettings(); // 重新渲染列表
-            this.renderHome();     // 更新首頁
+            this.renderSettings(); 
+            this.renderHome();     
         }
     }
 };

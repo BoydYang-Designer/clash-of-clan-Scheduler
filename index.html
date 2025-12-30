@@ -37,26 +37,40 @@
         </div>
 </div>
 
-    <!-- 新增：欄位編輯器 Modal -->
-    <div id="field-editor-modal" class="modal hidden">
-        <div class="modal-content" style="max-height:80vh; overflow-y:auto;">
-            <h2 style="margin-top:0;">編輯欄位</h2>
-            <p style="color:#666; font-size:0.9rem; margin-bottom:20px;">拖曳調整順序，點 ✕ 刪除欄位</p>
+<div id="field-editor-modal" class="modal hidden">
+        <div class="modal-content field-editor-content">
             
-            <div id="fields-list" style="margin:15px 0;"></div>
+            <div class="modal-header">
+                <div>
+                    <h2 style="margin:0; font-size:1.1rem;">編輯欄位</h2>
+                    <p style="color:#8E8E93; font-size:0.8rem; margin:4px 0 0 0;">長按並拖曳可排序</p>
+                </div>
+                </div>
             
-            <div class="form-group" style="margin-top:20px;">
-                <input type="text" id="new-field-input" placeholder="輸入新欄位名稱（例：數量、評分、保存期限）" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px;">
+            <div class="modal-body custom-scrollbar">
+                <div id="fields-list">
+                    </div>
             </div>
             
-            <div style="display:flex; gap:10px; margin-top:20px;">
-                <button onclick="app.addFieldFromEditor()" style="flex:1; background:#007aff; color:white; border:none; padding:12px; border-radius:8px; font-weight:bold;">➕ 新增欄位</button>
-                <button onclick="app.closeFieldEditor()" style="flex:1; padding:12px; background:#eee; border:none; border-radius:8px; font-weight:bold;">完成</button>
+            <div class="modal-footer">
+                <div class="form-group" style="margin-bottom:12px;">
+                    <input type="text" id="new-field-input" placeholder="輸入新欄位名稱 (例: 規格)..." 
+                           autocomplete="off">
+                </div>
+                
+                <div style="display:flex; gap:12px;">
+                    <button onclick="app.addFieldFromEditor()" class="btn-action-add">
+                        ＋ 新增
+                    </button>
+                    <button onclick="app.closeFieldEditor()" class="btn-action-done">
+                        完成
+                    </button>
+                </div>
             </div>
+
         </div>
     </div>
 
-    <!-- 圖片放大 Modal（原本就應該在這裡） -->
     <div id="image-modal" class="modal hidden" onclick="app.closeImage()">
         <span class="close-img-btn">&times;</span>
         <img class="modal-content-img" id="expanded-img">
