@@ -291,3 +291,24 @@ h1 { margin: 0; font-size: 1.2rem; }
 .sub-item:last-child { border-bottom: none; }
 .sub-date { color: #888; font-size: 0.85rem; }
 .sub-price { font-weight: 500; color: #333; }
+
+/* 搜尋結果樣式 */
+.search-result-item {
+    background: #fff;
+    margin-bottom: 10px;
+    padding: 12px;
+    border-radius: 12px;
+    border-left: 5px solid #ccc; /* 會由 JS 動態改變顏色 */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.search-cat-name {
+    font-size: 0.75rem;
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-bottom: 5px;
+    display: inline-block;
+}

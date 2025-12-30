@@ -4,11 +4,10 @@ const app = {
     editingItemIndex: null,
     
     // --- 新增：排序狀態設定 ---
-    sortField: null,      // 目前選擇的排序欄位 (例如 "金額")
-    sortDirection: -1,    // 1 為升冪 (小->大), -1 為降冪 (大->小)
+    sortField: null,      // 目前選擇的排序欄位
+    sortDirection: -1,    // 1 為升冪, -1 為降冪
 
     init: async function() {
-        // ... (這部分保持原本的 init 程式碼不變) ...
         const storedData = localStorage.getItem('shopData');
         if (storedData) {
             this.data = JSON.parse(storedData);
@@ -26,12 +25,12 @@ const app = {
         this.setupEventListeners();
     },
 
-    // ... (save, setupEventListeners, identifyFields 等函式保持不變) ...
     save: function() {
         localStorage.setItem('shopData', JSON.stringify(this.data));
     },
 
     setupEventListeners: function() {
+        // 返回按鈕
         document.getElementById('back-btn').addEventListener('click', () => {
             if (this.editingItemIndex !== null) {
                 this.renderCategoryList(this.currentCategoryIndex);
@@ -39,12 +38,29 @@ const app = {
                 this.renderHome();
             }
         });
+
+        // 動作按鈕（設定）
         document.getElementById('action-btn').addEventListener('click', () => {
-             this.toggleSettings();
+            this.toggleSettings();
         });
+
+        // 新增項目按鈕
         document.getElementById('add-item-btn').addEventListener('click', () => {
             this.renderEditForm(null); 
         });
+
+        // --- 全域搜尋監聽 ---
+        const searchInput = document.getElementById('global-search-input');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.trim();
+                this.performSearch(query);
+            });
+
+            searchInput.addEventListener('search', () => {
+                this.performSearch('');
+            });
+        }
     },
     
     identifyFields: function(category) {
@@ -55,21 +71,22 @@ const app = {
             date: f.find(k => ['日期', '時間'].some(t => k.includes(t)))
         };
     },
+
     renderHome: function() {
-        // ... (renderHome 保持不變，略過以節省篇幅) ...
         const container = document.getElementById('app-container');
         const headerTitle = document.getElementById('page-title');
         const backBtn = document.getElementById('back-btn');
         const fab = document.getElementById('floating-action');
+        const searchBar = document.getElementById('search-bar-container');
 
         container.innerHTML = ''; 
         headerTitle.innerText = '我的賣場';
         backBtn.classList.add('hidden');
         fab.classList.add('hidden');
+        if (searchBar) searchBar.classList.remove('hidden'); // 顯示搜尋欄
         
         this.currentCategoryIndex = null;
         this.editingItemIndex = null;
-        // 重置排序設定
         this.sortField = null;
 
         const grid = document.createElement('div');
@@ -104,20 +121,97 @@ const app = {
         container.appendChild(grid);
     },
 
-    // --- 新增功能：切換排序欄位 ---
+    // --- 搜尋功能 ---
+    performSearch: function(keyword) {
+        const container = document.getElementById('app-container');
+        const searchBar = document.getElementById('search-bar-container');
+        const pageTitle = document.getElementById('page-title');
+        const backBtn = document.getElementById('back-btn');
+        const fab = document.getElementById('floating-action');
+
+        keyword = keyword.trim();
+        
+        if (!keyword) {
+            // 清空搜尋 → 回到首頁
+            this.renderHome();
+            return;
+        }
+
+        // 進入搜尋模式
+        if (searchBar) searchBar.classList.remove('hidden');
+        pageTitle.innerText = `搜尋：${keyword}`;
+        backBtn.classList.remove('hidden');
+        fab.classList.add('hidden');
+
+        const lowerKeyword = keyword.toLowerCase();
+        const results = [];
+
+        this.data.forEach((cat, catIdx) => {
+            const keys = this.identifyFields(cat);
+            cat.items.forEach((item, itemIdx) => {
+                const title = String(item[keys.title] || '').toLowerCase();
+                if (title.includes(lowerKeyword)) {
+                    results.push({
+                        ...item,
+                        _catName: cat.name,
+                        _catColor: cat.color,
+                        _catIndex: catIdx,
+                        _originalIndex: itemIdx,
+                        _keys: keys
+                    });
+                }
+            });
+        });
+
+        if (results.length === 0) {
+            container.innerHTML = `<div style="text-align:center; padding:50px; color:#999;">找不到與「${keyword}」相關的商品</div>`;
+            return;
+        }
+
+        // 依日期新→舊排序
+        results.sort((a, b) => {
+            const dateA = a[a._keys.date] || '';
+            const dateB = b[b._keys.date] || '';
+            return dateB.localeCompare(dateA);
+        });
+
+        const html = results.map(res => {
+            const title = res[res._keys.title] || '未命名';
+            const date = res[res._keys.date] || '';
+            const price = res[res._keys.price] || '';
+            
+            return `
+                <div class="search-result-item" style="border-left: 5px solid ${res._catColor};"
+                     onclick="app.currentCategoryIndex = ${res._catIndex}; app.editingItemIndex = ${res._originalIndex}; app.renderEditForm(${res._originalIndex})">
+                    <div style="flex:1;">
+                        <span class="search-cat-name" style="background:${res._catColor}; color:white; padding:2px 8px; border-radius:4px; font-size:0.8rem;">${res._catName}</span>
+                        <div class="item-title" style="margin-top:8px; font-weight:500;">${title}</div>
+                        <div class="item-details" style="color:#666; font-size:0.9rem;">${date}</div>
+                    </div>
+                    ${price ? `<div class="item-price">NT$${price}</div>` : ''}
+                </div>
+            `;
+        }).join('');
+
+        container.innerHTML = `
+            <div style="padding:10px;">
+                <div style="color:#666; font-size:0.9rem; margin-bottom:15px;">
+                    找到 ${results.length} 筆符合「${keyword}」的商品
+                </div>
+                ${html}
+            </div>`;
+    },
+
     changeSortField: function(field) {
         this.sortField = field;
         this.renderCategoryList(this.currentCategoryIndex);
     },
 
-    // --- 新增功能：切換排序方向 ---
     toggleSortDirection: function() {
-        this.sortDirection *= -1; // 1 變 -1， -1 變 1
+        this.sortDirection *= -1;
         this.renderCategoryList(this.currentCategoryIndex);
     },
 
-    // --- 修改後的列表渲染 (核心修改) ---
-// --- 新增：切換群組展開/收合 ---
     toggleGroup: function(id) {
         const list = document.getElementById(`group-list-${id}`);
         const arrow = document.getElementById(`group-arrow-${id}`);
@@ -130,19 +224,20 @@ const app = {
         }
     },
 
-    // --- 修改後的列表渲染 (加入智慧分組功能) ---
     renderCategoryList: function(index) {
         this.currentCategoryIndex = index;
         this.editingItemIndex = null;
         const category = this.data[index];
         const container = document.getElementById('app-container');
+        const searchBar = document.getElementById('search-bar-container');
+
         document.getElementById('page-title').innerText = category.name;
         document.getElementById('back-btn').classList.remove('hidden');
         document.getElementById('floating-action').classList.remove('hidden');
+        if (searchBar) searchBar.classList.add('hidden'); // 進入類別時隱藏搜尋欄
 
         const keys = this.identifyFields(category);
 
-        // 預設排序
         if (!this.sortField || !category.fields.includes(this.sortField)) {
             this.sortField = keys.date || category.fields[0];
         }
@@ -152,7 +247,6 @@ const app = {
             return;
         }
 
-        // --- 1. 產生下拉選單 (保持不變) ---
         const sortableFields = category.fields.filter(f => f !== '圖片檔名');
         let optionsHtml = sortableFields.map(field => {
             const selected = (field === this.sortField) ? 'selected' : '';
@@ -165,12 +259,8 @@ const app = {
                 <button class="sort-dir-btn" onclick="app.toggleSortDirection()">${dirIcon}</button>
             </div>`;
 
-        // --- 2. 智慧分組邏輯 (核心修改) ---
-        
-        // 先把原始資料加上索引，這樣分組後還能找到它是第幾筆
         let itemsWithIndex = category.items.map((item, idx) => ({ ...item, _originalIndex: idx }));
 
-        // 依據「品名」進行分組
         const groups = {};
         itemsWithIndex.forEach(item => {
             const name = item[keys.title] || '未命名';
@@ -178,11 +268,8 @@ const app = {
             groups[name].push(item);
         });
 
-        // 將分組物件轉為陣列，以便進行排序
         let groupArray = Object.keys(groups).map(name => {
             const items = groups[name];
-            
-            // 計算該組的統計數據 (用於排序和顯示)
             const prices = items.map(i => {
                 const p = String(i[keys.price] || 0).replace(/[^0-9.-]+/g,"");
                 return parseFloat(p) || 0;
@@ -190,43 +277,35 @@ const app = {
             const maxPrice = Math.max(...prices);
             const minPrice = Math.min(...prices);
             
-            // 找出該組中「最符合排序條件」的值 (例如：依日期排序時，拿該組最新的日期來代表整組)
-            // 這裡我們先簡單處理：內部列表預設依日期(新->舊)排好
             items.sort((a, b) => {
                 const dA = a[keys.date] || '';
                 const dB = b[keys.date] || '';
-                return dB.localeCompare(dA); // 內部強制日期降冪，讓最新的在上面
+                return dB.localeCompare(dA);
             });
 
             return {
                 name: name,
-                items: items, // 這是一個陣列，包含該商品的所有購買紀錄
+                items: items,
                 count: items.length,
                 maxPrice: maxPrice,
                 minPrice: minPrice,
                 latestDate: items[0][keys.date] || '',
-                latestItem: items[0] // 用最新的一筆資料來代表這一組進行排序
+                latestItem: items[0]
             };
         });
 
-        // --- 3. 對「群組」進行排序 ---
         groupArray.sort((groupA, groupB) => {
-            // 我們拿各組的「代表項目 (latestItem)」來跟原本的排序邏輯比較
             let itemA = groupA.latestItem;
             let itemB = groupB.latestItem;
             
-            // 如果使用者是選「價格排序」，我們要特殊處理：
-            // 價格高到低 -> 比最大價 (maxPrice)
-            // 價格低到高 -> 比最小價 (minPrice)
             if (this.sortField.includes('金額') || this.sortField.includes('價格')) {
-                if (this.sortDirection === -1) { // 降冪 (高->低)
+                if (this.sortDirection === -1) {
                     return groupA.maxPrice - groupB.maxPrice; 
-                } else { // 升冪 (低->高)
+                } else {
                     return groupA.minPrice - groupB.minPrice;
                 }
             }
 
-            // 其他欄位使用原本的排序邏輯
             let valA = itemA[this.sortField] || '';
             let valB = itemB[this.sortField] || '';
             
@@ -246,18 +325,14 @@ const app = {
             }
         });
 
-        // --- 4. 渲染 HTML ---
         const listHtml = groupArray.map((group, gIndex) => {
-            const firstItem = group.items[0]; // 代表圖片
-            
-            // 圖片處理
+            const firstItem = group.items[0];
             let imgHtml = '';
             if (group.name && group.name !== '未命名') {
                 const imgSrc = `./images/${encodeURIComponent(group.name)}.jpg`;
                 imgHtml = `<img src="${imgSrc}" class="item-img" onerror="this.style.display='none'">`;
             }
 
-            // 狀況 A: 該商品只有一筆紀錄 -> 維持原本卡片樣式
             if (group.count === 1) {
                 const item = group.items[0];
                 const price = keys.price ? item[keys.price] || '' : '';
@@ -274,11 +349,7 @@ const app = {
                         </div>
                     </div>
                 </div>`;
-            }
-
-            // 狀況 B: 該商品有多筆紀錄 -> 顯示群組資料夾
-            else {
-                // 價格顯示邏輯：如果不一樣顯示範圍，一樣顯示單價
+            } else {
                 let priceDisplay = '';
                 if (group.minPrice !== group.maxPrice) {
                     priceDisplay = `NT$${group.minPrice} ~ ${group.maxPrice}`;
@@ -286,11 +357,9 @@ const app = {
                     priceDisplay = `NT$${group.minPrice}`;
                 }
 
-                // 產生子列表 HTML
                 const subItemsHtml = group.items.map(subItem => {
                     const sPrice = keys.price ? subItem[keys.price] : '';
                     const sDate = keys.date ? subItem[keys.date] : '';
-                    // 這裡可以加入更多你想在列表看到的資訊，例如「購買地點」
                     const sLoc = subItem['購買地點'] || ''; 
 
                     return `
@@ -325,9 +394,7 @@ const app = {
         container.innerHTML = sortHtml + '<div class="item-list">' + listHtml + '</div>';
     },
 
-    // ... (renderEditForm, openFieldEditor 等後續函式保持不變) ...
     renderEditForm: function(itemIndex) {
-        // ... 請保留原本 renderEditForm 的完整程式碼 ...
         this.editingItemIndex = itemIndex;
         const category = this.data[this.currentCategoryIndex];
         const isNew = itemIndex === null;
@@ -343,8 +410,8 @@ const app = {
         let html = '<div class="form-container" style="padding:15px;"><form id="item-form">';
         
         if (!isNew && itemTitle) {
-             const imgPath = `./images/${itemTitle}.jpg`;
-             const imgErrorScript = `if(this.src.endsWith('.jpg')){ this.src='./images/${itemTitle}.png'; } else { this.style.display='none'; }`;
+             const imgPath = `./images/${encodeURIComponent(itemTitle)}.jpg`;
+             const imgErrorScript = `if(this.src.endsWith('.jpg')){ this.src='./images/${encodeURIComponent(itemTitle)}.png'; } else { this.style.display='none'; }`;
 
              html += `
                 <div style="text-align:center; margin-bottom: 20px;">
@@ -377,7 +444,14 @@ const app = {
             </div>`;
 
         html += `<button type="button" class="btn-primary" onclick="app.saveItem()" style="width:100%;"> ${isNew ? '確認新增' : '更新資料'} </button>`;
-        
+
+        if (!isNew) {
+            html += `
+            <button type="button" class="btn-primary" onclick="app.saveAsNew()" style="width:100%; margin-top:10px; background-color: #28a745;">
+                ＋ 再次購買 (另存為新紀錄)
+            </button>`;
+        }
+
         if (!isNew) {
             html += `<button type="button" class="btn-delete" onclick="app.deleteItem(${itemIndex})" style="width:100%; margin-top:10px;">刪除商品</button>`;
         }
@@ -385,13 +459,7 @@ const app = {
         html += '</form></div>';
         container.innerHTML = html;
     },
-    // ... 請確保後面的 openFieldEditor, showImage 等函式都有保留 ...
-    openFieldEditor: function() { this.originalOpenFieldEditor(); }, // 這裡我簡寫了，請確保你沒有刪除原本的函式，如果原本的 code 沒動，只要替換 renderCategoryList 即可。
-    
-    // (為了方便，請確保從 openFieldEditor 開始往下的程式碼都存在。若您只需要替換修改的部分，請只複製上面的 renderCategoryList 覆蓋舊的即可)
-    
-    // --- 補齊原本的函式以防覆蓋錯誤 (請貼上你原本 app.js 後半段的所有程式碼) ---
-    // 下面這些函式請維持原本的樣子，不需要修改，但我列出來提醒你不要刪掉：
+
     openFieldEditor: function() {
         const catIndex = this.currentCategoryIndex;
         if (catIndex === null) return;
@@ -425,10 +493,12 @@ const app = {
         document.getElementById('field-editor-modal').classList.remove('hidden');
         setTimeout(() => document.getElementById('new-field-input').focus(), 100);
     },
+
     closeFieldEditor: function() {
         document.getElementById('field-editor-modal').classList.add('hidden');
         this.renderEditForm(this.editingItemIndex);
     },
+
     addFieldFromEditor: function() {
         const input = document.getElementById('new-field-input');
         const newField = input.value.trim();
@@ -440,6 +510,7 @@ const app = {
         input.value = '';
         this.openFieldEditor();
     },
+
     deleteFieldFromEditor: function(index) {
         const category = this.data[this.currentCategoryIndex];
         const fieldName = category.fields[index];
@@ -453,6 +524,7 @@ const app = {
         this.save();
         this.openFieldEditor();
     },
+
     showImage: function(event, src) {
         event.stopPropagation();
         const modal = document.getElementById('image-modal');
@@ -461,7 +533,9 @@ const app = {
         modal.classList.remove('hidden');
         modalImg.src = src;
     },
+
     closeImage: function() { document.getElementById('image-modal').classList.add('hidden'); },
+
     saveItem: function() {
         const form = document.getElementById('item-form');
         const formData = new FormData(form);
@@ -476,6 +550,21 @@ const app = {
         this.save();
         this.renderCategoryList(this.currentCategoryIndex);
     },
+
+    saveAsNew: function() {
+        const form = document.getElementById('item-form');
+        const formData = new FormData(form);
+        const newItem = {};
+        formData.forEach((value, key) => { newItem[key] = value; });
+
+        const category = this.data[this.currentCategoryIndex];
+        category.items.push(newItem);
+
+        this.save();
+        alert('已新增一筆購買紀錄！');
+        this.renderCategoryList(this.currentCategoryIndex);
+    },
+
     deleteItem: function(index) {
         if (confirm('確定要刪除這筆紀錄嗎？')) {
             this.data[this.currentCategoryIndex].items.splice(index, 1);
@@ -483,7 +572,11 @@ const app = {
             this.renderCategoryList(this.currentCategoryIndex);
         }
     },
-    toggleSettings: function() { document.getElementById('settings-modal').classList.toggle('hidden'); },
+
+    toggleSettings: function() { 
+        document.getElementById('settings-modal').classList.toggle('hidden'); 
+    },
+
     exportData: function() {
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.data));
         const downloadAnchorNode = document.createElement('a');
@@ -493,6 +586,7 @@ const app = {
         downloadAnchorNode.click();
         downloadAnchorNode.remove();
     },
+
     importData: function(input) {
         const file = input.files[0];
         if(!file) return;
@@ -510,12 +604,14 @@ const app = {
         };
         reader.readAsText(file);
     },
+
     resetData: function() {
         if(confirm("警告：這將清空所有資料！")) {
             localStorage.removeItem('shopData');
             location.reload();
         }
     },
+
     addNewCategory: function() {
         const name = document.getElementById('new-cat-name').value.trim();
         const color = document.getElementById('new-cat-color').value;
@@ -532,6 +628,7 @@ const app = {
             this.renderHome();
         }
     },
+
     deleteCategory: function(index) {
         if(confirm(`確定要刪除整個「${this.data[index].name}」賣場嗎？所有資料將會遺失！`)) {
             this.data.splice(index, 1);
