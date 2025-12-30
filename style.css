@@ -206,3 +206,88 @@ h1 { margin: 0; font-size: 1.2rem; }
     from {transform:scale(0)} 
     to {transform:scale(1)}
 }
+
+/* --- 排序選單樣式 --- */
+/* --- 排序選單與按鈕 --- */
+.sort-container {
+    padding: 0 var(--spacing);
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: flex-end; /* 靠右對齊 */
+    align-items: center;
+    gap: 8px; /* 欄位與按鈕的間距 */
+}
+
+.sort-select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #fff;
+    font-size: 0.9rem;
+    color: #333;
+    outline: none;
+    flex-grow: 0; /* 不要過度拉伸 */
+}
+
+.sort-dir-btn {
+    padding: 8px 12px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.sort-dir-btn:active {
+    background-color: #f0f0f0;
+}
+
+/* --- 商品分組樣式 --- */
+.group-card {
+    background-color: #fff;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    overflow: hidden;
+    border: 1px solid #e0e0e0;
+}
+
+.group-header {
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    background: #f8f9fa;
+    transition: background 0.2s;
+}
+.group-header:active { background: #eee; }
+
+.group-info { flex: 1; }
+.group-title { font-weight: bold; font-size: 1rem; color: #333; margin-bottom: 4px; }
+.group-meta { font-size: 0.85rem; color: #666; display: flex; gap: 10px; }
+.group-badge { 
+    background: #e3f2fd; color: #1565c0; 
+    padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: bold;
+}
+.group-arrow { font-size: 0.8rem; color: #999; margin-left: 10px; transition: transform 0.3s; }
+.group-arrow.open { transform: rotate(180deg); }
+
+/* 群組內的列表 */
+.group-list { display: none; background: #fff; border-top: 1px solid #eee; }
+.group-list.show { display: block; }
+
+.sub-item {
+    padding: 12px 15px;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+}
+.sub-item:last-child { border-bottom: none; }
+.sub-date { color: #888; font-size: 0.85rem; }
+.sub-price { font-weight: 500; color: #333; }

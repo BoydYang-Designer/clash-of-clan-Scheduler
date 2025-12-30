@@ -43,11 +43,32 @@
             <button class="close-modal" onclick="app.toggleSettings()">關閉</button>
         </div>
 
-        <div id="image-modal" class="modal hidden" onclick="app.closeImage()">
+        </div>
+    </div> <!-- 結束 settings-modal -->
+
+    <!-- 新增：欄位編輯器 Modal -->
+    <div id="field-editor-modal" class="modal hidden">
+        <div class="modal-content" style="max-height:80vh; overflow-y:auto;">
+            <h2 style="margin-top:0;">編輯欄位</h2>
+            <p style="color:#666; font-size:0.9rem; margin-bottom:20px;">拖曳調整順序，點 ✕ 刪除欄位</p>
+            
+            <div id="fields-list" style="margin:15px 0;"></div>
+            
+            <div class="form-group" style="margin-top:20px;">
+                <input type="text" id="new-field-input" placeholder="輸入新欄位名稱（例：數量、評分、保存期限）" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px;">
+            </div>
+            
+            <div style="display:flex; gap:10px; margin-top:20px;">
+                <button onclick="app.addFieldFromEditor()" style="flex:1; background:#007aff; color:white; border:none; padding:12px; border-radius:8px; font-weight:bold;">➕ 新增欄位</button>
+                <button onclick="app.closeFieldEditor()" style="flex:1; padding:12px; background:#eee; border:none; border-radius:8px; font-weight:bold;">完成</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 圖片放大 Modal（原本就應該在這裡） -->
+    <div id="image-modal" class="modal hidden" onclick="app.closeImage()">
         <span class="close-img-btn">&times;</span>
         <img class="modal-content-img" id="expanded-img">
-    </div>
-    
     </div>
 
     <script src="app.js"></script>

@@ -2,9 +2,13 @@ const app = {
     data: [],
     currentCategoryIndex: null,
     editingItemIndex: null,
-    sortOrder: 'date_desc', // 預設排序：日期新到舊
+    
+    // --- 新增：排序狀態設定 ---
+    sortField: null,      // 目前選擇的排序欄位 (例如 "金額")
+    sortDirection: -1,    // 1 為升冪 (小->大), -1 為降冪 (大->小)
 
     init: async function() {
+        // ... (這部分保持原本的 init 程式碼不變) ...
         const storedData = localStorage.getItem('shopData');
         if (storedData) {
             this.data = JSON.parse(storedData);
@@ -22,6 +26,7 @@ const app = {
         this.setupEventListeners();
     },
 
+    // ... (save, setupEventListeners, identifyFields 等函式保持不變) ...
     save: function() {
         localStorage.setItem('shopData', JSON.stringify(this.data));
     },
@@ -41,71 +46,7 @@ const app = {
             this.renderEditForm(null); 
         });
     },
-
-    // --- 欄位管理功能 ---
-
-    addNewField: function() {
-        const catIndex = this.currentCategoryIndex;
-        if (catIndex === null) return;
-
-        const newFieldName = prompt("請輸入新欄位的名稱 (例如: 保存期限, 數量, 評分):");
-        if (newFieldName) {
-            if (this.data[catIndex].fields.includes(newFieldName)) {
-                alert("這個欄位已經存在囉！");
-                return;
-            }
-            // 為了美觀，將新欄位加在最後面
-            this.data[catIndex].fields.push(newFieldName);
-            this.save();
-            this.renderEditForm(this.editingItemIndex);
-        }
-    },
-
-    // 修改：刪除指定欄位
-    removeSpecificField: function() {
-        const catIndex = this.currentCategoryIndex;
-        if (catIndex === null) return;
-        const fields = this.data[catIndex].fields;
-
-        // 產生列表供使用者選擇
-        let msg = "請輸入要刪除的欄位「編號」：\n";
-        fields.forEach((f, i) => {
-            msg += `${i + 1}. ${f}\n`;
-        });
-
-        const input = prompt(msg);
-        const indexToDelete = parseInt(input) - 1;
-
-        if (!isNaN(indexToDelete) && indexToDelete >= 0 && indexToDelete < fields.length) {
-            const fieldName = fields[indexToDelete];
-            
-            // 防呆：避免刪除核心識別欄位
-            if (fieldName.includes('品') || fieldName.includes('名') || fieldName.includes('金額') || fieldName.includes('價格')) {
-                if(!confirm(`「${fieldName}」看起來是很重要的欄位，刪除後既有資料會消失，確定要刪除嗎？`)) {
-                    return;
-                }
-            } else {
-                if (!confirm(`確定要刪除「${fieldName}」欄位嗎？`)) {
-                    return;
-                }
-            }
-
-            // 執行刪除
-            fields.splice(indexToDelete, 1);
-            
-            // 選擇性：清理所有商品中該欄位的資料 (雖不清理也不會報錯，但清理比較乾淨)
-            this.data[catIndex].items.forEach(item => {
-                delete item[fieldName];
-            });
-
-            this.save();
-            this.renderEditForm(this.editingItemIndex);
-        } else if (input !== null) {
-            alert("輸入的編號無效");
-        }
-    },
-
-    // --- 輔助功能：找出關鍵欄位 ---
+    
     identifyFields: function(category) {
         const f = category.fields;
         return {
@@ -114,10 +55,8 @@ const app = {
             date: f.find(k => ['日期', '時間'].some(t => k.includes(t)))
         };
     },
-
-    // --- 視圖渲染 ---
-
     renderHome: function() {
+        // ... (renderHome 保持不變，略過以節省篇幅) ...
         const container = document.getElementById('app-container');
         const headerTitle = document.getElementById('page-title');
         const backBtn = document.getElementById('back-btn');
@@ -130,14 +69,16 @@ const app = {
         
         this.currentCategoryIndex = null;
         this.editingItemIndex = null;
+        // 重置排序設定
+        this.sortField = null;
 
         const grid = document.createElement('div');
         grid.className = 'category-grid';
 
         this.data.forEach((cat, index) => {
             const card = document.createElement('div');
-            card.className = 'category-card';
-            card.style.borderTop = `5px solid ${cat.color}`;
+            card.className = 'cat-card';
+            card.style.borderLeft = `5px solid ${cat.color}`;
             card.innerHTML = `
                 <div class="cat-name">${cat.name}</div>
                 <div class="cat-count">${cat.items.length} 筆紀錄</div>
@@ -152,9 +93,8 @@ const app = {
             grid.appendChild(card);
         });
 
-        // 新增賣場按鈕
         const addCard = document.createElement('div');
-        addCard.className = 'category-card add-new-card';
+        addCard.className = 'cat-card add-new-card';
         addCard.innerHTML = `<div class="cat-name" style="font-size: 2rem; color: #888;">+</div><div class="cat-count">新增賣場</div>`;
         addCard.onclick = () => {
             document.getElementById('settings-modal').classList.remove('hidden');
@@ -164,7 +104,34 @@ const app = {
         container.appendChild(grid);
     },
 
-renderCategoryList: function(index) {
+    // --- 新增功能：切換排序欄位 ---
+    changeSortField: function(field) {
+        this.sortField = field;
+        this.renderCategoryList(this.currentCategoryIndex);
+    },
+
+    // --- 新增功能：切換排序方向 ---
+    toggleSortDirection: function() {
+        this.sortDirection *= -1; // 1 變 -1， -1 變 1
+        this.renderCategoryList(this.currentCategoryIndex);
+    },
+
+    // --- 修改後的列表渲染 (核心修改) ---
+// --- 新增：切換群組展開/收合 ---
+    toggleGroup: function(id) {
+        const list = document.getElementById(`group-list-${id}`);
+        const arrow = document.getElementById(`group-arrow-${id}`);
+        if (list.style.display === 'block') {
+            list.style.display = 'none';
+            arrow.classList.remove('open');
+        } else {
+            list.style.display = 'block';
+            arrow.classList.add('open');
+        }
+    },
+
+    // --- 修改後的列表渲染 (加入智慧分組功能) ---
+    renderCategoryList: function(index) {
         this.currentCategoryIndex = index;
         this.editingItemIndex = null;
         const category = this.data[index];
@@ -174,96 +141,199 @@ renderCategoryList: function(index) {
         document.getElementById('floating-action').classList.remove('hidden');
 
         const keys = this.identifyFields(category);
-        
+
+        // 預設排序
+        if (!this.sortField || !category.fields.includes(this.sortField)) {
+            this.sortField = keys.date || category.fields[0];
+        }
+
         if (category.items.length === 0) {
-            container.innerHTML = '<div style="text-align:center; padding:50px; color:#999;">尚無紀錄<br>點擊右下角新增</div>';
+            container.innerHTML = '<div style="text-align:center; padding:50px; color:#999;">尚無紀錄<br><small>點擊右下角 + 新增第一筆</small></div>';
             return;
         }
 
-        // --- 排序邏輯 (保持原本設定) ---
-        let sortedItems = [...category.items];
-        sortedItems = sortedItems.map((item, originalIdx) => ({...item, _originalIdx: originalIdx}));
-        // (這裡省略您的排序 switch case 程式碼，請保留原本的 switch) 
-        // 為了完整性，若您直接複製貼上，請把原本 switch 區塊貼回這裡
-        // ... (您的 switch 排序代碼) ...
-        switch(this.sortOrder) {
-            case 'date_desc': if(keys.date) sortedItems.sort((a, b) => new Date(b[keys.date]) - new Date(a[keys.date])); break;
-            case 'date_asc': if(keys.date) sortedItems.sort((a, b) => new Date(a[keys.date]) - new Date(b[keys.date])); break;
-            case 'price_desc': if(keys.price) sortedItems.sort((a, b) => (b[keys.price] || 0) - (a[keys.price] || 0)); break;
-            case 'price_asc': if(keys.price) sortedItems.sort((a, b) => (a[keys.price] || 0) - (b[keys.price] || 0)); break;
-            case 'name_asc': sortedItems.sort((a, b) => (a[keys.title] || '').localeCompare(b[keys.title] || '', 'zh-Hant')); break;
-            default: sortedItems.sort((a, b) => b._originalIdx - a._originalIdx);
-        }
-        // -----------------------------
+        // --- 1. 產生下拉選單 (保持不變) ---
+        const sortableFields = category.fields.filter(f => f !== '圖片檔名');
+        let optionsHtml = sortableFields.map(field => {
+            const selected = (field === this.sortField) ? 'selected' : '';
+            return `<option value="${field}" ${selected}>依 ${field} 排序</option>`;
+        }).join('');
+        const dirIcon = this.sortDirection === 1 ? '⬆️ 低→高 (舊→新)' : '⬇️ 高→低 (新→舊)';
+        const sortHtml = `
+            <div class="sort-container">
+                <select class="sort-select" onchange="app.changeSortField(this.value)">${optionsHtml}</select>
+                <button class="sort-dir-btn" onclick="app.toggleSortDirection()">${dirIcon}</button>
+            </div>`;
 
-        // 排序選單 HTML (保持不變)
-        let html = `
-            <div style="padding: 10px 16px; display:flex; justify-content: flex-end; align-items: center; background: #fff; margin-bottom: 10px; border-bottom: 1px solid #eee;">
-                <label style="font-size: 0.9rem; margin-right: 8px; color: #666;">排序：</label>
-                <select id="sort-select" onchange="app.changeSort(this.value)" style="padding: 5px; border-radius: 5px; border: 1px solid #ccc;">
-                    <option value="date_desc" ${this.sortOrder === 'date_desc' ? 'selected' : ''}>日期 (新→舊)</option>
-                    <option value="date_asc" ${this.sortOrder === 'date_asc' ? 'selected' : ''}>日期 (舊→新)</option>
-                    <option value="price_desc" ${this.sortOrder === 'price_desc' ? 'selected' : ''}>金額 (高→低)</option>
-                    <option value="price_asc" ${this.sortOrder === 'price_asc' ? 'selected' : ''}>金額 (低→高)</option>
-                    <option value="name_asc" ${this.sortOrder === 'name_asc' ? 'selected' : ''}>品名 (A→Z)</option>
-                </select>
-            </div>
-            <div class="item-list">`;
+        // --- 2. 智慧分組邏輯 (核心修改) ---
+        
+        // 先把原始資料加上索引，這樣分組後還能找到它是第幾筆
+        let itemsWithIndex = category.items.map((item, idx) => ({ ...item, _originalIndex: idx }));
 
-        sortedItems.forEach((item) => {
-            const originalIndex = item._originalIdx;
-            const itemTitle = item[keys.title] || '未命名商品';
-            const priceDisplay = keys.price && item[keys.price] ? `$${item[keys.price]}` : '';
+        // 依據「品名」進行分組
+        const groups = {};
+        itemsWithIndex.forEach(item => {
+            const name = item[keys.title] || '未命名';
+            if (!groups[name]) groups[name] = [];
+            groups[name].push(item);
+        });
+
+        // 將分組物件轉為陣列，以便進行排序
+        let groupArray = Object.keys(groups).map(name => {
+            const items = groups[name];
             
-            // --- 圖片邏輯優化 ---
-            // 1. 預設先找 jpg
-            // 2. 失敗找 png (onerror)
-            // 3. 再失敗顯示預設圖 (placeholder)
-            const imgPath = `./images/${itemTitle}.jpg`;
-            // 使用一個透明的 1x1 像素圖片或是購物籃圖示作為最終 fallback
-            const fallbackImg = 'https://cdn-icons-png.flaticon.com/512/263/263142.png'; // 或是您本地的 icon
+            // 計算該組的統計數據 (用於排序和顯示)
+            const prices = items.map(i => {
+                const p = String(i[keys.price] || 0).replace(/[^0-9.-]+/g,"");
+                return parseFloat(p) || 0;
+            });
+            const maxPrice = Math.max(...prices);
+            const minPrice = Math.min(...prices);
             
-            const imgErrorScript = `
-                if(this.src.endsWith('.jpg')){ 
-                    this.src='./images/${itemTitle}.png'; 
-                } else { 
-                    this.src='${fallbackImg}'; 
-                    this.style.opacity='0.3'; // 預設圖稍微淡一點
-                }
-            `;
-
-            let details = [];
-            category.fields.forEach(key => {
-                if(key !== keys.title && key !== keys.price && key !== '圖片檔名' && item[key] && item[key] !== 'x') {
-                    details.push(`${key}: ${item[key]}`);
-                }
+            // 找出該組中「最符合排序條件」的值 (例如：依日期排序時，拿該組最新的日期來代表整組)
+            // 這裡我們先簡單處理：內部列表預設依日期(新->舊)排好
+            items.sort((a, b) => {
+                const dA = a[keys.date] || '';
+                const dB = b[keys.date] || '';
+                return dB.localeCompare(dA); // 內部強制日期降冪，讓最新的在上面
             });
 
-            html += `
-                <div class="item-card" onclick="app.renderEditForm(${originalIndex})">
-                    <img src="${imgPath}" class="item-img" 
-                         onerror="${imgErrorScript}" 
-                         onclick="app.showImage(event, this.src)">
-                    
-                    <div class="item-content">
-                        <div class="item-title">${itemTitle}</div>
-                        <div class="item-details">${details.slice(0, 3).join(' | ')}</div>
-                        <div class="item-price">${priceDisplay}</div>
+            return {
+                name: name,
+                items: items, // 這是一個陣列，包含該商品的所有購買紀錄
+                count: items.length,
+                maxPrice: maxPrice,
+                minPrice: minPrice,
+                latestDate: items[0][keys.date] || '',
+                latestItem: items[0] // 用最新的一筆資料來代表這一組進行排序
+            };
+        });
+
+        // --- 3. 對「群組」進行排序 ---
+        groupArray.sort((groupA, groupB) => {
+            // 我們拿各組的「代表項目 (latestItem)」來跟原本的排序邏輯比較
+            let itemA = groupA.latestItem;
+            let itemB = groupB.latestItem;
+            
+            // 如果使用者是選「價格排序」，我們要特殊處理：
+            // 價格高到低 -> 比最大價 (maxPrice)
+            // 價格低到高 -> 比最小價 (minPrice)
+            if (this.sortField.includes('金額') || this.sortField.includes('價格')) {
+                if (this.sortDirection === -1) { // 降冪 (高->低)
+                    return groupA.maxPrice - groupB.maxPrice; 
+                } else { // 升冪 (低->高)
+                    return groupA.minPrice - groupB.minPrice;
+                }
+            }
+
+            // 其他欄位使用原本的排序邏輯
+            let valA = itemA[this.sortField] || '';
+            let valB = itemB[this.sortField] || '';
+            
+            const cleanNum = (val) => {
+                if (typeof val === 'number') return val;
+                const str = String(val).replace(/[^0-9.-]+/g, "");
+                return parseFloat(str);
+            };
+            const numA = cleanNum(valA);
+            const numB = cleanNum(valB);
+            const isNumericField = !isNaN(numA) && !isNaN(numB) && !this.sortField.includes('日期') && valA !== '' && valB !== '';
+
+            if (isNumericField) {
+                return (numA - numB) * this.sortDirection;
+            } else {
+                return String(valA).localeCompare(String(valB), 'zh-Hant') * this.sortDirection;
+            }
+        });
+
+        // --- 4. 渲染 HTML ---
+        const listHtml = groupArray.map((group, gIndex) => {
+            const firstItem = group.items[0]; // 代表圖片
+            
+            // 圖片處理
+            let imgHtml = '';
+            if (group.name && group.name !== '未命名') {
+                const imgSrc = `./images/${encodeURIComponent(group.name)}.jpg`;
+                imgHtml = `<img src="${imgSrc}" class="item-img" onerror="this.style.display='none'">`;
+            }
+
+            // 狀況 A: 該商品只有一筆紀錄 -> 維持原本卡片樣式
+            if (group.count === 1) {
+                const item = group.items[0];
+                const price = keys.price ? item[keys.price] || '' : '';
+                const date = keys.date ? item[keys.date] || '' : '';
+                
+                return `
+                <div class="item-card" onclick="app.renderEditForm(${item._originalIndex})">
+                    <div class="item-content" style="display:flex; align-items:center;">
+                        ${imgHtml}
+                        <div style="flex:1;">
+                            <div class="item-title">${group.name}</div>
+                            <div class="item-details">${date}</div>
+                            ${price ? `<div class="item-price">NT$${price}</div>` : ''}
+                        </div>
                     </div>
                 </div>`;
-        });
-        html += '</div>';
-        container.innerHTML = html;
+            }
+
+            // 狀況 B: 該商品有多筆紀錄 -> 顯示群組資料夾
+            else {
+                // 價格顯示邏輯：如果不一樣顯示範圍，一樣顯示單價
+                let priceDisplay = '';
+                if (group.minPrice !== group.maxPrice) {
+                    priceDisplay = `NT$${group.minPrice} ~ ${group.maxPrice}`;
+                } else {
+                    priceDisplay = `NT$${group.minPrice}`;
+                }
+
+                // 產生子列表 HTML
+                const subItemsHtml = group.items.map(subItem => {
+                    const sPrice = keys.price ? subItem[keys.price] : '';
+                    const sDate = keys.date ? subItem[keys.date] : '';
+                    // 這裡可以加入更多你想在列表看到的資訊，例如「購買地點」
+                    const sLoc = subItem['購買地點'] || ''; 
+
+                    return `
+                    <div class="sub-item" onclick="app.renderEditForm(${subItem._originalIndex})">
+                        <div>
+                            <div class="sub-date">${sDate} ${sLoc ? `(${sLoc})` : ''}</div>
+                        </div>
+                        <div class="sub-price">NT$${sPrice}</div>
+                    </div>`;
+                }).join('');
+
+                return `
+                <div class="group-card">
+                    <div class="group-header" onclick="app.toggleGroup(${gIndex})">
+                        ${imgHtml}
+                        <div class="group-info">
+                            <div class="group-title">${group.name}</div>
+                            <div class="group-meta">
+                                <span class="group-badge">買過 ${group.count} 次</span>
+                                <span>${priceDisplay}</span>
+                            </div>
+                        </div>
+                        <div id="group-arrow-${gIndex}" class="group-arrow">▼</div>
+                    </div>
+                    <div id="group-list-${gIndex}" class="group-list">
+                        ${subItemsHtml}
+                    </div>
+                </div>`;
+            }
+        }).join('');
+
+        container.innerHTML = sortHtml + '<div class="item-list">' + listHtml + '</div>';
     },
 
+    // ... (renderEditForm, openFieldEditor 等後續函式保持不變) ...
     renderEditForm: function(itemIndex) {
+        // ... 請保留原本 renderEditForm 的完整程式碼 ...
         this.editingItemIndex = itemIndex;
         const category = this.data[this.currentCategoryIndex];
         const isNew = itemIndex === null;
         const item = isNew ? {} : category.items[itemIndex];
         const container = document.getElementById('app-container');
         
-        // 抓取品名以顯示圖片
         const keys = this.identifyFields(category);
         const itemTitle = item[keys.title] || '';
         
@@ -272,10 +342,8 @@ renderCategoryList: function(index) {
 
         let html = '<div class="form-container" style="padding:15px;"><form id="item-form">';
         
-        // --- 在編輯頁面頂端加入圖片預覽 ---
         if (!isNew && itemTitle) {
              const imgPath = `./images/${itemTitle}.jpg`;
-             const fallbackImg = 'https://cdn-icons-png.flaticon.com/512/263/263142.png';
              const imgErrorScript = `if(this.src.endsWith('.jpg')){ this.src='./images/${itemTitle}.png'; } else { this.style.display='none'; }`;
 
              html += `
@@ -285,7 +353,6 @@ renderCategoryList: function(index) {
                 </div>
              `;
         }
-        // --------------------------------
 
         category.fields.forEach(field => {
             if(field === '圖片檔名') return;
@@ -298,67 +365,117 @@ renderCategoryList: function(index) {
                 </div>`;
         });
 
-        // 提示與按鈕 (保持不變)
         html += `<p style="font-size:0.8rem; color:#999; margin-top:-5px; margin-bottom:20px;">
-            ℹ️ 圖片系統：請將圖檔命名為 <b>${keys.title}.jpg</b> 並放入 images 資料夾
+            ℹ️ 圖片系統：請將圖檔命名為 <b>${keys.title || '品名'}.jpg</b> 並放入 images 資料夾
         </p>`;
 
         html += `
-            <div style="display:flex; gap:15px; margin:10px 0 20px 0; padding:10px 0; border-top:1px dashed #eee;">
-                <span onclick="app.addNewField()" style="color:#007aff; cursor:pointer; font-size:0.9rem;">➕ 新增欄位</span>
-                <span onclick="app.removeSpecificField()" style="color:#ff3b30; cursor:pointer; font-size:0.9rem;">➖ 刪除指定欄位</span>
+            <div style="margin:20px 0; padding:15px; background:#f9f9f9; border-radius:8px;">
+                <div onclick="app.openFieldEditor()" style="color:#007aff; cursor:pointer; font-weight:500; text-align:center; padding:12px; background:#fff; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.1);">
+                    ✏️ 編輯欄位（新增、刪除、調整順序）
+                </div>
             </div>`;
 
-        html += `<button type="button" class="btn-field" onclick="app.saveItem()" style="width:100%; border:none; color:white; padding:12px; border-radius:8px;">${isNew ? '確認新增' : '更新資料'}</button>`;
+        html += `<button type="button" class="btn-primary" onclick="app.saveItem()" style="width:100%;"> ${isNew ? '確認新增' : '更新資料'} </button>`;
         
         if (!isNew) {
-            html += `<button type="button" class="btn-delete" onclick="app.deleteItem(${itemIndex})" style="width:100%; margin-top:10px; border:none; color:white; padding:12px; border-radius:8px;">刪除商品</button>`;
+            html += `<button type="button" class="btn-delete" onclick="app.deleteItem(${itemIndex})" style="width:100%; margin-top:10px;">刪除商品</button>`;
         }
         
         html += '</form></div>';
         container.innerHTML = html;
     },
-
-    // --- 新增：圖片放大功能 ---
+    // ... 請確保後面的 openFieldEditor, showImage 等函式都有保留 ...
+    openFieldEditor: function() { this.originalOpenFieldEditor(); }, // 這裡我簡寫了，請確保你沒有刪除原本的函式，如果原本的 code 沒動，只要替換 renderCategoryList 即可。
+    
+    // (為了方便，請確保從 openFieldEditor 開始往下的程式碼都存在。若您只需要替換修改的部分，請只複製上面的 renderCategoryList 覆蓋舊的即可)
+    
+    // --- 補齊原本的函式以防覆蓋錯誤 (請貼上你原本 app.js 後半段的所有程式碼) ---
+    // 下面這些函式請維持原本的樣子，不需要修改，但我列出來提醒你不要刪掉：
+    openFieldEditor: function() {
+        const catIndex = this.currentCategoryIndex;
+        if (catIndex === null) return;
+        const category = this.data[catIndex];
+        const fieldsList = document.getElementById('fields-list');
+        fieldsList.innerHTML = '';
+        category.fields.forEach((field, index) => {
+            const item = document.createElement('div');
+            item.style.cssText = `display: flex; align-items: center; padding: 12px; background: #fff; margin-bottom: 8px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); cursor: move; user-select: none;`;
+            item.draggable = true;
+            item.dataset.index = index;
+            item.innerHTML = `<span style="flex:1; font-weight:500;">${field}</span><span style="color:#ff3b30; cursor:pointer; font-size:1.2rem; padding:8px;" onclick="event.stopPropagation(); app.deleteFieldFromEditor(${index})">✕</span>`;
+            item.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', index); item.style.opacity = '0.5'; });
+            item.addEventListener('dragend', () => { item.style.opacity = '1'; });
+            item.addEventListener('dragover', (e) => { e.preventDefault(); });
+            item.addEventListener('drop', (e) => {
+                e.preventDefault(); e.stopPropagation();
+                const fromIndex = parseInt(e.dataTransfer.getData('text'));
+                const toIndex = index;
+                if (fromIndex !== toIndex) {
+                    const fields = [...category.fields];
+                    const [moved] = fields.splice(fromIndex, 1);
+                    fields.splice(toIndex, 0, moved);
+                    category.fields = fields;
+                    this.save();
+                    this.openFieldEditor();
+                }
+            });
+            fieldsList.appendChild(item);
+        });
+        document.getElementById('field-editor-modal').classList.remove('hidden');
+        setTimeout(() => document.getElementById('new-field-input').focus(), 100);
+    },
+    closeFieldEditor: function() {
+        document.getElementById('field-editor-modal').classList.add('hidden');
+        this.renderEditForm(this.editingItemIndex);
+    },
+    addFieldFromEditor: function() {
+        const input = document.getElementById('new-field-input');
+        const newField = input.value.trim();
+        if (!newField) { alert("請輸入欄位名稱"); return; }
+        const category = this.data[this.currentCategoryIndex];
+        if (category.fields.includes(newField)) { alert("這個欄位已經存在了！"); return; }
+        category.fields.push(newField);
+        this.save();
+        input.value = '';
+        this.openFieldEditor();
+    },
+    deleteFieldFromEditor: function(index) {
+        const category = this.data[this.currentCategoryIndex];
+        const fieldName = category.fields[index];
+        if (fieldName.includes('品') || fieldName.includes('金額') || fieldName.includes('價格') || fieldName.includes('費用') || fieldName.includes('日期')) {
+            if (!confirm(`「${fieldName}」是重要欄位，刪除後所有相關資料會遺失，確定要刪除嗎？`)) { return; }
+        } else {
+            if (!confirm(`確定要刪除欄位「${fieldName}」嗎？`)) { return; }
+        }
+        category.fields.splice(index, 1);
+        category.items.forEach(item => { delete item[fieldName]; });
+        this.save();
+        this.openFieldEditor();
+    },
     showImage: function(event, src) {
-        event.stopPropagation(); // 阻止事件冒泡，避免觸發 item-card 的 onclick
+        event.stopPropagation();
         const modal = document.getElementById('image-modal');
         const modalImg = document.getElementById('expanded-img');
-        
-        // 如果是預設圖 (icon)，就不放大顯示了，感覺怪怪的
-        if(src.includes('cdn-icons-png') || src.includes('opacity')) {
-            return; 
-        }
-
+        if(src.includes('cdn-icons-png') || src.includes('opacity')) { return; }
         modal.classList.remove('hidden');
         modalImg.src = src;
     },
-
-    closeImage: function() {
-        document.getElementById('image-modal').classList.add('hidden');
-    },
-
+    closeImage: function() { document.getElementById('image-modal').classList.add('hidden'); },
     saveItem: function() {
         const form = document.getElementById('item-form');
         const formData = new FormData(form);
         const newItem = {};
-        
-        formData.forEach((value, key) => {
-            newItem[key] = value;
-        });
-
+        formData.forEach((value, key) => { newItem[key] = value; });
         const category = this.data[this.currentCategoryIndex];
         if (this.editingItemIndex !== null) {
-            // 保留原本物件的其他屬性 (例如可能存在的隱藏欄位)
             category.items[this.editingItemIndex] = { ...category.items[this.editingItemIndex], ...newItem };
         } else {
             category.items.push(newItem);
         }
-
         this.save();
         this.renderCategoryList(this.currentCategoryIndex);
     },
-
     deleteItem: function(index) {
         if (confirm('確定要刪除這筆紀錄嗎？')) {
             this.data[this.currentCategoryIndex].items.splice(index, 1);
@@ -366,12 +483,7 @@ renderCategoryList: function(index) {
             this.renderCategoryList(this.currentCategoryIndex);
         }
     },
-
-    // --- 其他管理功能 ---
-    toggleSettings: function() {
-        document.getElementById('settings-modal').classList.toggle('hidden');
-    },
-
+    toggleSettings: function() { document.getElementById('settings-modal').classList.toggle('hidden'); },
     exportData: function() {
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.data));
         const downloadAnchorNode = document.createElement('a');
@@ -381,7 +493,6 @@ renderCategoryList: function(index) {
         downloadAnchorNode.click();
         downloadAnchorNode.remove();
     },
-
     importData: function(input) {
         const file = input.files[0];
         if(!file) return;
@@ -399,16 +510,14 @@ renderCategoryList: function(index) {
         };
         reader.readAsText(file);
     },
-    
     resetData: function() {
         if(confirm("警告：這將清空所有資料！")) {
             localStorage.removeItem('shopData');
             location.reload();
         }
     },
-
     addNewCategory: function() {
-        const name = document.getElementById('new-cat-name').value;
+        const name = document.getElementById('new-cat-name').value.trim();
         const color = document.getElementById('new-cat-color').value;
         if(name) {
             this.data.push({
@@ -423,11 +532,12 @@ renderCategoryList: function(index) {
             this.renderHome();
         }
     },
-
     deleteCategory: function(index) {
-        this.data.splice(index, 1);
-        this.save();
-        this.renderHome();
+        if(confirm(`確定要刪除整個「${this.data[index].name}」賣場嗎？所有資料將會遺失！`)) {
+            this.data.splice(index, 1);
+            this.save();
+            this.renderHome();
+        }
     }
 };
 
