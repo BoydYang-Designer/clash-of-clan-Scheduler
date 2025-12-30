@@ -139,6 +139,9 @@ const app = {
         const fab = document.getElementById('floating-action');
         const searchBar = document.getElementById('search-bar-container');
 
+        const header = document.getElementById('main-header');
+        header.style.borderLeft = 'none'; // 或 '5px solid transparent'
+
         container.innerHTML = ''; 
         
         // 修改：標題包含日期顯示區塊
@@ -200,6 +203,9 @@ const app = {
             this.renderHome();
             return;
         }
+
+        const header = document.getElementById('main-header');
+        header.style.borderLeft = 'none';
 
         // 進入搜尋模式
         if (searchBar) searchBar.classList.remove('hidden');
@@ -294,6 +300,9 @@ const app = {
         const category = this.data[index];
         const container = document.getElementById('app-container');
         const searchBar = document.getElementById('search-bar-container');
+
+        const header = document.getElementById('main-header');
+        header.style.borderLeft = `5px solid ${category.color}`;
 
         document.getElementById('page-title').innerText = category.name;
         document.getElementById('back-btn').classList.remove('hidden');
