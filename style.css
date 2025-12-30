@@ -761,3 +761,26 @@ h1#page-title {
     cursor: pointer;
     z-index: 2100;
 }
+
+
+/* 修改標題容器：使用 Flex 直向排列，讓日期乖乖待在標題下方 */
+#page-title {
+    display: flex;
+    flex-direction: column; /* 垂直排列 */
+    align-items: center;    /* 水平置中 */
+    justify-content: center;
+    font-size: 1.2rem;      /* 主標題大小 */
+    font-weight: 700;
+    line-height: 1.1;       /* 縮小行高，讓日期不要離標題太遠 */
+    margin: 0;              /* 清除多餘邊距 */
+}
+
+/* 修改日期樣式：微調大小與顏色，讓它像個副標題 */
+#last-updated-time {
+    display: block;         /* 確保它自己佔一行 */
+    font-size: 0.7rem;      /* 字體縮小 */
+    color: #8E8E93;         /* 使用質感灰 (iOS Secondary Label Color) */
+    font-weight: 400;       /* 細體 */
+    margin-top: 2px;        /* 與上方標題保持微小距離 */
+    letter-spacing: 0.5px;  /* 增加一點字距 */
+}

@@ -3,35 +3,95 @@ const app = {
     currentCategoryIndex: null,
     editingItemIndex: null,
     
-    // --- 新增：排序狀態設定 ---
-    sortField: null,      // 目前選擇的排序欄位
-    sortDirection: -1,    // 1 為升冪, -1 為降冪
+    sortField: null,
+    sortDirection: -1,
+    lastUpdated: null,
 
     init: async function() {
         const storedData = localStorage.getItem('shopData');
+        const storedTime = localStorage.getItem('shopLastUpdated'); 
+
+        // 1. 處理資料載入
         if (storedData) {
             this.data = JSON.parse(storedData);
         } else {
+            // 如果沒有 localStorage，讀取預設 JSON
             try {
                 const response = await fetch('data.json');
                 this.data = await response.json();
-                this.save();
+                // 注意：這裡讀取預設檔案，我們 "不" 執行 save()，
+                // 這樣時間就不會變成現在，而是保持 null 或顯示「尚無更新」
             } catch (e) {
                 console.error("無法讀取 data.json", e);
                 this.data = [];
             }
         }
+
+        // 2. 處理時間載入 (修正邏輯：只讀取，不預設為 Date.now)
+        if (storedTime) {
+            this.lastUpdated = parseInt(storedTime);
+        } else {
+            // 如果從來沒有紀錄過時間 (例如第一次開啟)，保持 null
+            this.lastUpdated = null;
+        }
+
+        this.updateTimeUI(); // 更新介面
         this.renderHome();
         this.setupEventListeners();
     },
 
-    save: function() {
+    // save 函式：預設 updateTimestamp 為 true，只有特殊情況才傳 false
+    save: function(updateTimestamp = true) {
+        if (updateTimestamp) {
+            this.lastUpdated = Date.now(); // 只有在這裡才會更新時間
+        }
+        
         localStorage.setItem('shopData', JSON.stringify(this.data));
+        
+        // 如果有時間才儲存時間 (避免 null 被轉成字串)
+        if (this.lastUpdated) {
+            localStorage.setItem('shopLastUpdated', this.lastUpdated.toString());
+        }
+        
+        this.updateTimeUI();
+    },
+
+    updateTimeUI: function() {
+        const el = document.getElementById('last-updated-time');
+        if (!el) return;
+
+        // 如果沒有時間紀錄 (例如第一次使用且還沒編輯過)，就不顯示或顯示預設文字
+        if (!this.lastUpdated) {
+            el.textContent = ""; // 保持空白，或者你可以寫 "尚無更新紀錄"
+            el.style.display = 'none'; // 隱藏元素以節省空間
+            return;
+        }
+
+        el.style.display = 'block'; // 確保顯示
+        const date = new Date(this.lastUpdated);
+        
+        // 格式化：2025/12/30 16:09
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        const hour = date.getHours().toString().padStart(2, '0');
+        const minute = date.getMinutes().toString().padStart(2, '0');
+        
+        el.textContent = `最後更新 ${year}/${month}/${day} ${hour}:${minute}`;
     },
 
     setupEventListeners: function() {
-        // 返回按鈕
+        // 返回按鈕 (修改：支援清空搜尋)
         document.getElementById('back-btn').addEventListener('click', () => {
+            const searchInput = document.getElementById('global-search-input');
+            
+            // 如果搜尋框有字，代表正在搜尋模式，則清空並回首頁
+            if (searchInput && searchInput.value.trim() !== "") {
+                searchInput.value = ""; 
+                this.renderHome();
+                return;
+            }
+
             if (this.editingItemIndex !== null) {
                 this.renderCategoryList(this.currentCategoryIndex);
             } else if (this.currentCategoryIndex !== null) {
@@ -80,7 +140,11 @@ const app = {
         const searchBar = document.getElementById('search-bar-container');
 
         container.innerHTML = ''; 
-        headerTitle.innerText = '我的賣場';
+        
+        // 修改：標題包含日期顯示區塊
+        headerTitle.innerHTML = `我的賣場<span id="last-updated-time"></span>`;
+        this.updateTimeUI(); // 重新渲染後要再次填入時間
+
         backBtn.classList.add('hidden');
         fab.classList.add('hidden');
         if (searchBar) searchBar.classList.remove('hidden'); // 顯示搜尋欄
@@ -573,7 +637,7 @@ const app = {
         }
     },
 
-toggleSettings: function() { 
+    toggleSettings: function() { 
         const modal = document.getElementById('settings-modal');
         if (modal.classList.contains('hidden')) {
             this.renderSettings(); // 開啟前先渲染最新資料
@@ -583,11 +647,9 @@ toggleSettings: function() {
         }
     },
 
-
     renderSettings: function() {
         const content = document.getElementById('settings-content');
         
-        // 1. 生成賣場列表 HTML (更細緻的結構)
         let catsHtml = this.data.map((cat, index) => `
             <div class="cat-edit-item">
                 <div class="color-picker-wrapper" title="點擊修改顏色">
@@ -605,7 +667,6 @@ toggleSettings: function() {
             </div>
         `).join('');
 
-        // 2. 組合整個設定畫面 (Header + Body 結構)
         content.innerHTML = `
             <div class="modal-header">
                 <h2>設定與管理</h2>
@@ -646,13 +707,11 @@ toggleSettings: function() {
         `;
     },
 
-    // 3. 新增：快速新增賣場 (給設定頁面用)
     quickAddCategory: function() {
         const input = document.getElementById('quick-new-cat');
         const name = input.value.trim();
         if (!name) return;
         
-        // 隨機產生一個顏色
         const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16);
         
         this.data.push({
@@ -663,43 +722,35 @@ toggleSettings: function() {
             items: []
         });
         this.save();
-        this.renderSettings(); // 重新渲染設定列表，讓使用者看到新增的
-        this.renderHome();     // 背景的首頁也要更新
+        this.renderSettings(); 
+        this.renderHome();     
         input.value = '';
     },
 
-    // 4. 新增：更新賣場名稱
     updateCategoryName: function(index, newName) {
         if (!newName.trim()) {
             alert("名稱不能為空");
-            this.renderSettings(); // 還原
+            this.renderSettings(); 
             return;
         }
         this.data[index].name = newName;
         this.save();
-        this.renderHome(); // 更新背景首頁
+        this.renderHome(); 
     },
 
-    // 5. 新增：更新賣場顏色
     updateCategoryColor: function(index, newColor) {
         this.data[index].color = newColor;
         this.save();
-        this.renderHome(); // 更新背景首頁
+        this.renderHome(); 
     },
 
-    // 6. 修改 Delete Category (增加確認後重新渲染設定頁面)
-    deleteCategory: function(index) {
-        const catName = this.data[index].name;
-        if(confirm(`確定要刪除整個「${catName}」賣場嗎？\n此動作無法復原！`)) {
-            this.data.splice(index, 1);
-            this.save();
-            this.renderSettings(); // 重新渲染列表，移除該項目
-            this.renderHome();     // 更新背景首頁
-        }
-    },
-
+    // 修改：匯出時包含時間戳記
     exportData: function() {
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.data));
+        const exportObj = {
+            timestamp: this.lastUpdated || Date.now(),
+            data: this.data
+        };
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj));
         const downloadAnchorNode = document.createElement('a');
         downloadAnchorNode.setAttribute("href", dataStr);
         downloadAnchorNode.setAttribute("download", "shopping_backup_" + new Date().toISOString().slice(0,10) + ".json");
@@ -708,6 +759,7 @@ toggleSettings: function() {
         downloadAnchorNode.remove();
     },
 
+    // 修改：匯入時讀取時間戳記
     importData: function(input) {
         const file = input.files[0];
         if(!file) return;
@@ -716,12 +768,25 @@ toggleSettings: function() {
             try {
                 const json = JSON.parse(e.target.result);
                 if(confirm("這將會覆蓋目前的資料，確定嗎？")) {
-                    this.data = json;
-                    this.save();
+                    
+                    // 判斷是否為新格式 (含 timestamp)
+                    if (json.data && Array.isArray(json.data)) {
+                        this.data = json.data;
+                        // 如果有時間就用匯入的，沒有就用現在
+                        this.lastUpdated = json.timestamp || Date.now();
+                    } else if (Array.isArray(json)) {
+                        // 舊格式：純陣列
+                        this.data = json;
+                        this.lastUpdated = Date.now(); // 視為全新匯入
+                    }
+                    
+                    // 儲存但不覆寫時間為「現在」(false 參數)
+                    this.save(false);
+                    
                     this.toggleSettings();
                     this.renderHome();
                 }
-            } catch (err) { alert("檔案格式錯誤"); }
+            } catch (err) { alert("檔案格式錯誤"); console.error(err); }
         };
         reader.readAsText(file);
     },
@@ -729,6 +794,7 @@ toggleSettings: function() {
     resetData: function() {
         if(confirm("警告：這將清空所有資料！")) {
             localStorage.removeItem('shopData');
+            localStorage.removeItem('shopLastUpdated'); // 同時清除時間
             location.reload();
         }
     },
@@ -751,10 +817,12 @@ toggleSettings: function() {
     },
 
     deleteCategory: function(index) {
-        if(confirm(`確定要刪除整個「${this.data[index].name}」賣場嗎？所有資料將會遺失！`)) {
+        const catName = this.data[index].name;
+        if(confirm(`確定要刪除整個「${catName}」賣場嗎？\n此動作無法復原！`)) {
             this.data.splice(index, 1);
             this.save();
-            this.renderHome();
+            this.renderSettings(); // 重新渲染列表
+            this.renderHome();     // 更新首頁
         }
     }
 };
