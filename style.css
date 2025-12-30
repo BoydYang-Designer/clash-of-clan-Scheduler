@@ -165,3 +165,44 @@ h1 { margin: 0; font-size: 1.2rem; }
 .danger-btn { color: red; border-color: red !important; }
 .file-input-wrapper { position: relative; overflow: hidden; display: inline-block; width: 100%; }
 .file-input-wrapper input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+
+/* --- 圖片優化樣式 --- */
+
+/* 列表中的小圖：強制正方形，圓角，填滿不變形 */
+.item-img {
+    width: 80px;
+    height: 80px;
+    object-fit: cover; /* 關鍵：確保圖片填滿方框且不變形 */
+    border-radius: 8px;
+    margin-right: 15px;
+    background-color: #eee; /* 載入前的底色 */
+    border: 1px solid #ddd;
+    flex-shrink: 0; /* 防止被擠壓 */
+}
+
+/* 放大圖片的 Modal */
+.modal-content-img {
+    margin: auto;
+    display: block;
+    max-width: 90%;
+    max-height: 80vh;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    animation: zoom 0.3s;
+}
+
+.close-img-btn {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    color: #f1f1f1;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 300;
+}
+
+@keyframes zoom {
+    from {transform:scale(0)} 
+    to {transform:scale(1)}
+}

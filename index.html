@@ -42,6 +42,12 @@
             </div>
             <button class="close-modal" onclick="app.toggleSettings()">關閉</button>
         </div>
+
+        <div id="image-modal" class="modal hidden" onclick="app.closeImage()">
+        <span class="close-img-btn">&times;</span>
+        <img class="modal-content-img" id="expanded-img">
+    </div>
+    
     </div>
 
     <script src="app.js"></script>
