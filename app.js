@@ -371,7 +371,7 @@ const app = {
                     </div>`;
                 }).join('');
 
-                return `
+               return `
                 <div class="group-card">
                     <div class="group-header" onclick="app.toggleGroup(${gIndex})">
                         ${imgHtml}
@@ -384,7 +384,7 @@ const app = {
                         </div>
                         <div id="group-arrow-${gIndex}" class="group-arrow">▼</div>
                     </div>
-                    <div id="group-list-${gIndex}" class="group-list">
+                    <div id="group-list-${gIndex}" class="group-list" style="display: none;">
                         ${subItemsHtml}
                     </div>
                 </div>`;
