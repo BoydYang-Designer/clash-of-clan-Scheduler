@@ -171,10 +171,12 @@ const app = {
         const addCard = document.createElement('div');
         addCard.className = 'cat-card add-new-card';
         addCard.innerHTML = `<div class="cat-name" style="font-size: 2rem; color: #888;">+</div><div class="cat-count">新增賣場</div>`;
+        
+        // --- 修改點：這裡改為呼叫獨立的新增視窗 ---
         addCard.onclick = () => {
-            document.getElementById('settings-modal').classList.remove('hidden');
-            setTimeout(() => document.getElementById('new-cat-name').focus(), 100);
+            this.openAddCategoryModal();
         };
+        
         grid.appendChild(addCard);
         container.appendChild(grid);
     },
@@ -882,6 +884,81 @@ const app = {
             this.renderSettings(); 
             this.renderHome();     
         }
+    },
+
+    // --- 新增的功能：打開新增賣場專用視窗 ---
+    openAddCategoryModal: function() {
+        const content = document.getElementById('settings-content');
+        const modal = document.getElementById('settings-modal');
+        
+        // 隨機預設一個顏色
+        const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+
+        // 產生專屬的新增介面 HTML
+        content.innerHTML = `
+            <div class="modal-header">
+                <h2>新增賣場</h2>
+                <button class="close-modal-btn" onclick="document.getElementById('settings-modal').classList.add('hidden')">×</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label>賣場名稱</label>
+                    <input type="text" id="new-cat-name-input" placeholder="例如: 全聯, 7-11
+                    ..." autocomplete="off">
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 30px;">
+                    <label>選擇顏色</label>
+                    <div style="display:flex; align-items:center; gap:15px; background:#f9f9f9; padding:10px; border-radius:12px;">
+                        <input type="color" id="new-cat-color-input" value="${randomColor}" 
+                               style="width:50px; height:50px; padding:0; border:none; border-radius:8px; cursor:pointer;">
+                        <span style="color:#666; font-size:0.9rem;">點擊色塊可更換顏色</span>
+                    </div>
+                </div>
+
+                <div class="action-group">
+                    <button class="btn-primary" onclick="app.confirmAddCategory()">確認新增</button>
+                </div>
+            </div>
+        `;
+
+        modal.classList.remove('hidden');
+        
+        // 自動聚焦在名稱輸入框
+        setTimeout(() => {
+            const input = document.getElementById('new-cat-name-input');
+            if(input) input.focus();
+        }, 100);
+    },
+
+    // --- 新增的功能：確認並儲存新賣場 ---
+    confirmAddCategory: function() {
+        const nameInput = document.getElementById('new-cat-name-input');
+        const colorInput = document.getElementById('new-cat-color-input');
+        
+        const name = nameInput.value.trim();
+        const color = colorInput.value;
+
+        if (!name) {
+            alert("請輸入賣場名稱");
+            return;
+        }
+
+        // 新增資料
+        this.data.push({
+            id: Date.now().toString(),
+            name: name,
+            color: color,
+            fields: ['品名', '價格', '購買日期', '備註'], // 預設欄位
+            items: []
+        });
+
+        this.save();
+        
+        // 關閉視窗並重新整理首頁
+        document.getElementById('settings-modal').classList.add('hidden');
+        this.renderHome();
     }
 };
 
