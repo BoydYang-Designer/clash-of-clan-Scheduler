@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>個人購物記帳</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<header id="main-header">
+    <button id="back-btn" class="icon-btn hidden" onclick="app.backToDashboard()">
+        <span style="font-size: 1.2rem;">◀</span>
+    </button>
+    
+    <h1 id="page-title">我的本子</h1>
+    
+    <button id="action-btn" class="icon-btn hidden">⚙️</button>
+</header>
+
+<div id="dashboard-view" class="view-container">
+    <div id="dashboard-empty-state" class="empty-state hidden">
+        <div class="empty-icon">📚</div>
+        <p>還沒有本子<br>點擊右下角新增一本吧！</p>
+    </div>
+
+    <div id="modules-list" class="dashboard-grid">
+        </div>
+
+    <div class="fab-container">
+        <button class="fab-btn dashboard-fab" onclick="app.showAddModuleModal()">＋</button>
+    </div>
+</div>
+
+<div id="module-view" class="view-container hidden">
+    
+    <div id="search-bar-container">
+        <div style="padding: 10px var(--spacing); background: #fff; border-bottom: 1px solid #eee;">
+            <input type="text" id="global-search-input" placeholder="🔍 搜尋所有商品..." 
+                   style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px;">
+        </div>
+    </div>
+
+    <main id="category-container">
+        </main>
+
+    <div class="fab-container">
+        <button class="fab-btn module-fab" onclick="app.openAddCategoryModal()">＋</button>
+    </div>
+</div>
+
+<div id="module-modal" class="modal hidden">
+    <div class="modal-content">
+        <h3 id="module-modal-title">建立新本子</h3>
+        <input type="text" id="module-name-input" placeholder="例如：我的賣場、全聯比價" class="input-field">
+        <div class="modal-footer">
+            <button onclick="app.closeModuleModal()">取消</button>
+            <button onclick="app.confirmModule()" class="btn-primary">確定</button>
+        </div>
+    </div>
+</div>
+
+<div id="module-action-sheet" class="modal hidden" style="align-items: flex-end;" onclick="app.closeModuleActionSheet()">
+    <div class="action-sheet-content" onclick="event.stopPropagation()">
+        <button class="action-sheet-item" onclick="app.renameCurrentTargetModule()">✏️ 重新命名</button>
+        <button class="action-sheet-item text-danger" onclick="app.deleteCurrentTargetModule()">🗑️ 刪除本子</button>
+        <button class="action-sheet-item cancel" onclick="app.closeModuleActionSheet()">取消</button>
+    </div>
+</div>
+
+<div id="add-category-modal" class="modal hidden">
+    </div>
+
+<div id="editor-modal" class="modal hidden">
+   </div>
+
+<div id="field-editor-modal" class="modal hidden">
+    </div>
+
+<div id="image-modal" class="modal hidden" onclick="app.closeImage()">
+    <span class="close-img-btn">&times;</span>
+    <img class="modal-content-img" id="expanded-img">
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

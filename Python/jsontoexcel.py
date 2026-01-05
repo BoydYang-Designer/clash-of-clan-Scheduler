@@ -20,9 +20,10 @@ def convert_json_to_excel():
         return
 
     try:
-        # 3. 讀取 JSON 資料
+        # 3. 讀取 JSON 資料（修正：取 'data' 鍵下的陣列）
         with open(file_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
+            full_data = json.load(f)
+            data = full_data['data']  # 新增這行，取出實際的商店陣列
 
         # 4. 準備寫入 Excel
         output_file = "Shop_Converted.xlsx"
