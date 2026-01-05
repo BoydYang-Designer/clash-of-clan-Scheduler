@@ -1,53 +1,84 @@
 const app = {
-    data: [],
+    // ============================================================
+    // 1. 核心資料結構與初始化 (Core Data & Init)
+    // ============================================================
+    collections: [],          // 所有記帳本
+    currentCollection: null,  // 目前選中的記帳本索引 (null 為頂層)
+    data: [],                 // 指向目前記帳本的 content.data (相容舊邏輯)
+    
     currentCategoryIndex: null,
     editingItemIndex: null,
     
     sortField: null,
     sortDirection: -1,
     lastUpdated: null,
+    
+    collectionName: '',
+    collectionColor: '#007AFF',
 
-    init: async function() {
-        const storedData = localStorage.getItem('shopData');
-        const storedTime = localStorage.getItem('shopLastUpdated'); 
-
-        // 1. 處理資料載入
-        if (storedData) {
-            this.data = JSON.parse(storedData);
-        } else {
-            // 如果沒有 localStorage，讀取預設 JSON
-            try {
-                const response = await fetch('data.json');
-                this.data = await response.json();
-            } catch (e) {
-                console.error("無法讀取 data.json", e);
-                this.data = [];
+    init: function() {
+        const stored = localStorage.getItem('collections');
+        
+        // 嘗試遷移舊資料的邏輯 (如果沒有 collections 但有舊的 shopData)
+        if (!stored) {
+            const oldShopData = localStorage.getItem('shopData');
+            const oldTime = localStorage.getItem('shopLastUpdated');
+            
+            if (oldShopData) {
+                // 將舊資料遷移到第一個記帳本
+                try {
+                    const parsedData = JSON.parse(oldShopData);
+                    this.collections = [{
+                        id: Date.now().toString(),
+                        name: "我的賣場 (舊資料)",
+                        color: "#007AFF",
+                        content: { 
+                            timestamp: oldTime ? parseInt(oldTime) : Date.now(), 
+                            data: parsedData 
+                        }
+                    }];
+                    alert("已自動將您原有的賣場資料轉換為新版記帳本！");
+                } catch(e) {
+                    this.createDefaultCollection();
+                }
+            } else {
+                this.createDefaultCollection();
             }
-        }
-
-        // 2. 處理時間載入
-        if (storedTime) {
-            this.lastUpdated = parseInt(storedTime);
         } else {
-            this.lastUpdated = null;
+            this.collections = JSON.parse(stored);
         }
 
-        this.updateTimeUI(); 
-        this.renderHome();
+        this.saveCollections(); // 確保結構同步
+        this.renderTopLevel();
         this.setupEventListeners();
     },
 
+    createDefaultCollection: function() {
+        this.collections = [{
+            id: Date.now().toString(),
+            name: "我的賣場",
+            color: "#007AFF",
+            content: { timestamp: Date.now(), data: [] }
+        }];
+    },
+
+    saveCollections: function() {
+        localStorage.setItem('collections', JSON.stringify(this.collections));
+    },
+
+    // 儲存當前操作 (相容舊函式呼叫)
     save: function(updateTimestamp = true) {
+        if (this.currentCollection === null) return;
+        
         if (updateTimestamp) {
-            this.lastUpdated = Date.now();
+            this.collections[this.currentCollection].content.timestamp = Date.now();
+            this.lastUpdated = this.collections[this.currentCollection].content.timestamp;
         }
         
-        localStorage.setItem('shopData', JSON.stringify(this.data));
+        // 確保 data 寫回 collection 結構
+        this.collections[this.currentCollection].content.data = this.data;
         
-        if (this.lastUpdated) {
-            localStorage.setItem('shopLastUpdated', this.lastUpdated.toString());
-        }
-        
+        this.saveCollections();
         this.updateTimeUI();
     },
 
@@ -55,7 +86,7 @@ const app = {
         const el = document.getElementById('last-updated-time');
         if (!el) return;
 
-        if (!this.lastUpdated) {
+        if (this.currentCollection === null || !this.lastUpdated) {
             el.textContent = ""; 
             el.style.display = 'none'; 
             return;
@@ -63,7 +94,6 @@ const app = {
 
         el.style.display = 'block'; 
         const date = new Date(this.lastUpdated);
-        
         const year = date.getFullYear();
         const month = (date.getMonth() + 1).toString().padStart(2, '0');
         const day = date.getDate().toString().padStart(2, '0');
@@ -74,78 +104,170 @@ const app = {
     },
 
     setupEventListeners: function() {
-        // 返回按鈕
-        document.getElementById('back-btn').addEventListener('click', () => {
-            const searchInput = document.getElementById('global-search-input');
-            
-            if (searchInput && searchInput.value.trim() !== "") {
-                searchInput.value = ""; 
-                this.renderHome();
-                return;
-            }
+        // 返回按鈕邏輯
+        document.getElementById('back-btn').addEventListener('click', () => this.goBack());
 
-            if (this.editingItemIndex !== null) {
-                this.renderCategoryList(this.currentCategoryIndex);
-            } else if (this.currentCategoryIndex !== null) {
-                this.renderHome();
-            }
-        });
+        // 設定按鈕
+        document.getElementById('action-btn').addEventListener('click', () => this.toggleSettings());
 
-        // 動作按鈕（設定）
-        document.getElementById('action-btn').addEventListener('click', () => {
-            this.toggleSettings();
-        });
-
-        // 新增項目按鈕
+        // 新增項目按鈕 (+ FAB)
         document.getElementById('add-item-btn').addEventListener('click', () => {
-            this.renderEditForm(null); 
+            if (this.currentCollection !== null) {
+                this.renderEditForm(null); 
+            }
         });
 
-        // --- 全域搜尋監聽 ---
+        // 搜尋監聽
         const searchInput = document.getElementById('global-search-input');
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
                 const query = e.target.value.trim();
-                this.performSearch(query);
+                if (this.currentCollection !== null) {
+                    this.performSearch(query);
+                }
             });
 
             searchInput.addEventListener('search', () => {
-                this.performSearch('');
+                if (this.currentCollection !== null) {
+                    this.performSearch('');
+                }
             });
         }
     },
-    
-    identifyFields: function(category) {
-        const f = category.fields;
-        return {
-            title: f.find(k => ['品名', '品項', '產品名稱', '博物館', '名稱'].some(t => k.includes(t))) || f[0],
-            price: f.find(k => ['金額', '價格', '費用'].some(t => k.includes(t))),
-            date: f.find(k => ['日期', '時間'].some(t => k.includes(t)))
-        };
+
+    // 統一的返回邏輯
+    goBack: function() {
+        const searchInput = document.getElementById('global-search-input');
+        const query = searchInput ? searchInput.value.trim() : '';
+        
+        // 1. 如果在搜尋模式，先清空搜尋
+        if (query !== '') {
+            searchInput.value = ''; 
+            if (this.currentCollection !== null) {
+                this.renderHome();
+            }
+            return;
+        }
+
+        // 2. 如果在編輯商品，回分類列表
+        if (this.editingItemIndex !== null) {
+            this.editingItemIndex = null;
+            // 如果是在欄位編輯器開啟狀態，也需要關閉 (雖由 modal 處理，但確保邏輯)
+            if (this.currentCategoryIndex !== null) {
+                this.renderCategoryList(this.currentCategoryIndex);
+            } else {
+                this.renderHome();
+            }
+            return;
+        } 
+        
+        // 3. 如果在分類列表，回記帳本首頁
+        if (this.currentCategoryIndex !== null) {
+            this.renderHome();
+            return;
+        }
+
+        // 4. 如果在記帳本首頁，回最上層 (記帳本列表)
+        if (this.currentCollection !== null) {
+            this.currentCollection = null;
+            this.renderTopLevel();
+            return;
+        }
     },
 
+    // ============================================================
+    // 2. 視圖層級 A：最上層 (記帳本列表)
+    // ============================================================
+    renderTopLevel: function() {
+        const container = document.getElementById('app-container');
+        container.innerHTML = ''; 
+        
+        document.getElementById('page-title').innerHTML = '記帳本';
+        document.getElementById('back-btn').classList.add('hidden');
+        document.getElementById('floating-action').classList.add('hidden');
+        document.getElementById('search-bar-container').classList.add('hidden');
+        document.getElementById('main-header').style.borderLeft = 'none'; 
+
+        const grid = document.createElement('div');
+        grid.className = 'category-grid';
+
+        this.collections.forEach((col, idx) => {
+            const totalCats = col.content.data.length;
+            const totalItems = col.content.data.reduce((acc, cat) => acc + cat.items.length, 0);
+
+            const card = document.createElement('div');
+            card.className = 'cat-card';
+            card.style.borderLeft = `5px solid ${col.color}`;
+            card.innerHTML = `
+                <div class="cat-name">${col.name}</div>
+                <div class="cat-count">${totalCats} 個賣場・${totalItems} 筆紀錄</div>
+            `;
+            // 右鍵刪除記帳本
+            card.oncontextmenu = (e) => {
+                e.preventDefault();
+                if(confirm(`確定要刪除記帳本「${col.name}」嗎？所有資料將永久遺失！`)) {
+                    this.collections.splice(idx, 1);
+                    this.saveCollections();
+                    this.renderTopLevel();
+                }
+            };
+            card.onclick = () => this.enterCollection(idx);
+            grid.appendChild(card);
+        });
+
+        const addCard = document.createElement('div');
+        addCard.className = 'cat-card add-new-card';
+        addCard.innerHTML = `<div class="cat-name" style="font-size: 2rem; color: #888;">+</div><div class="cat-count">新增記帳本</div>`;
+        addCard.onclick = () => {
+            this.openAddCollectionModal();
+        };
+        
+        grid.appendChild(addCard);
+        container.appendChild(grid);
+    },
+
+    enterCollection: function(idx) {
+        this.currentCollection = idx;
+        const col = this.collections[idx];
+        
+        // 核心：將 app.data 指向選中記帳本的資料，讓後續函式無痛接軌
+        this.data = col.content.data;
+        this.lastUpdated = col.content.timestamp;
+        this.collectionName = col.name;
+        this.collectionColor = col.color;
+
+        this.currentCategoryIndex = null;
+        this.editingItemIndex = null;
+        this.sortField = null;
+
+        this.renderHome();
+    },
+
+    // ============================================================
+    // 3. 視圖層級 B：記帳本首頁 (賣場分類列表)
+    // ============================================================
     renderHome: function() {
         const container = document.getElementById('app-container');
         const headerTitle = document.getElementById('page-title');
         const backBtn = document.getElementById('back-btn');
         const fab = document.getElementById('floating-action');
         const searchBar = document.getElementById('search-bar-container');
-
         const header = document.getElementById('main-header');
-        header.style.borderLeft = 'none'; 
 
-        container.innerHTML = ''; 
-        
-        headerTitle.innerHTML = `我的賣場<span id="last-updated-time"></span>`;
+        // 設定樣式
+        header.style.borderLeft = `5px solid ${this.collectionColor}`; 
+        headerTitle.innerHTML = `${this.collectionName}<span id="last-updated-time"></span>`;
         this.updateTimeUI(); 
 
-        backBtn.classList.add('hidden');
+        backBtn.classList.remove('hidden'); // 顯示返回 (回上一層)
         fab.classList.add('hidden');
         if (searchBar) searchBar.classList.remove('hidden'); 
         
         this.currentCategoryIndex = null;
         this.editingItemIndex = null;
         this.sortField = null;
+
+        container.innerHTML = ''; 
 
         const grid = document.createElement('div');
         grid.className = 'category-grid';
@@ -171,8 +293,6 @@ const app = {
         const addCard = document.createElement('div');
         addCard.className = 'cat-card add-new-card';
         addCard.innerHTML = `<div class="cat-name" style="font-size: 2rem; color: #888;">+</div><div class="cat-count">新增賣場</div>`;
-        
-        // --- 修改點：這裡改為呼叫獨立的新增視窗 ---
         addCard.onclick = () => {
             this.openAddCategoryModal();
         };
@@ -181,9 +301,23 @@ const app = {
         container.appendChild(grid);
     },
 
+    // ============================================================
+    // 4. 視圖層級 C：商品列表與操作 (保留原 app.js 強大功能)
+    // ============================================================
+    
+    // 識別欄位 (保留原邏輯)
+    identifyFields: function(category) {
+        const f = category.fields;
+        return {
+            title: f.find(k => ['品名', '品項', '產品名稱', '博物館', '名稱'].some(t => k.includes(t))) || f[0],
+            price: f.find(k => ['金額', '價格', '費用'].some(t => k.includes(t))),
+            date: f.find(k => ['日期', '時間'].some(t => k.includes(t)))
+        };
+    },
+
+    // 搜尋功能 (已適配多記帳本)
     performSearch: function(keyword) {
         const container = document.getElementById('app-container');
-        const searchBar = document.getElementById('search-bar-container');
         const pageTitle = document.getElementById('page-title');
         const backBtn = document.getElementById('back-btn');
         const fab = document.getElementById('floating-action');
@@ -195,10 +329,7 @@ const app = {
             return;
         }
 
-        const header = document.getElementById('main-header');
-        header.style.borderLeft = 'none';
-
-        if (searchBar) searchBar.classList.remove('hidden');
+        document.getElementById('main-header').style.borderLeft = `5px solid ${this.collectionColor}`;
         pageTitle.innerText = `搜尋：${keyword}`;
         backBtn.classList.remove('hidden');
         fab.classList.add('hidden');
@@ -228,6 +359,7 @@ const app = {
             return;
         }
 
+        // 搜尋結果排序 (新到舊)
         results.sort((a, b) => {
             const dateA = a[a._keys.date] || '';
             const dateB = b[b._keys.date] || '';
@@ -261,6 +393,7 @@ const app = {
             </div>`;
     },
 
+    // 排序與列表顯示 (保留原功能)
     changeSortField: function(field) {
         this.sortField = field;
         this.renderCategoryList(this.currentCategoryIndex);
@@ -323,6 +456,7 @@ const app = {
 
         let itemsWithIndex = category.items.map((item, idx) => ({ ...item, _originalIndex: idx }));
 
+        // 分組邏輯
         const groups = {};
         itemsWithIndex.forEach(item => {
             const name = item[keys.title] || '未命名';
@@ -356,6 +490,7 @@ const app = {
             };
         });
 
+        // 排序邏輯
         groupArray.sort((groupA, groupB) => {
             let itemA = groupA.latestItem;
             let itemB = groupB.latestItem;
@@ -391,7 +526,7 @@ const app = {
             let imgHtml = '';
             if (group.name && group.name !== '未命名') {
                 const imgSrc = `./images/${encodeURIComponent(group.name)}.jpg`;
-                imgHtml = `<img src="${imgSrc}" class="item-img" onerror="this.style.display='none'">`;
+                imgHtml = `<img src="${imgSrc}" class="item-img" onerror="this.style.display='none'" onclick="app.showImage(event, this.src)">`;
             }
 
             if (group.count === 1) {
@@ -455,6 +590,9 @@ const app = {
         container.innerHTML = sortHtml + '<div class="item-list">' + listHtml + '</div>';
     },
 
+    // ============================================================
+    // 5. 編輯與表單功能 (保留原功能)
+    // ============================================================
     renderEditForm: function(itemIndex) {
         this.editingItemIndex = itemIndex;
         const category = this.data[this.currentCategoryIndex];
@@ -472,11 +610,12 @@ const app = {
         
         if (!isNew && itemTitle) {
              const imgPath = `./images/${encodeURIComponent(itemTitle)}.jpg`;
+             // 若找不到 jpg，嘗試 png，還是沒有則隱藏
              const imgErrorScript = `if(this.src.endsWith('.jpg')){ this.src='./images/${encodeURIComponent(itemTitle)}.png'; } else { this.style.display='none'; }`;
 
              html += `
                 <div style="text-align:center; margin-bottom: 20px;">
-                    <img src="${imgPath}" onerror="${imgErrorScript}" 
+                    <img src="${imgPath}" onerror="${imgErrorScript}" onclick="app.showImage(event, this.src)"
                          style="max-height: 200px; max-width: 100%; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
                 </div>
              `;
@@ -497,9 +636,7 @@ const app = {
             ℹ️ 圖片系統：請將圖檔命名為 <b>${keys.title || '品名'}.jpg</b> 並放入 images 資料夾
         </p>`;
 
-        // --- 新設計的按鈕區域 ---
-        
-        // 1. 編輯欄位 (列表樣式)
+        // 按鈕區域
         html += `
             <div style="margin-top: 30px;">
                 <button type="button" class="btn-field-editor" onclick="app.openFieldEditor()">
@@ -507,9 +644,7 @@ const app = {
                 </button>
             </div>`;
 
-        // 2. 主要動作區 (更新 + 再次購買)
         html += `<div class="action-group">`;
-        
         html += `<button type="button" class="btn-primary" onclick="app.saveItem()">
                     ${isNew ? '確認新增' : '儲存變更'}
                  </button>`;
@@ -521,9 +656,8 @@ const app = {
             </button>`;
         }
         
-        html += `</div>`; // End action-group
+        html += `</div>`; 
 
-        // 3. 刪除按鈕 (獨立，最下方)
         if (!isNew) {
             html += `
             <div style="margin-top: 10px; text-align: center;">
@@ -537,6 +671,7 @@ const app = {
         container.innerHTML = html;
     },
 
+    // 欄位編輯器邏輯 (Drag and Drop)
     openFieldEditor: function() {
         const catIndex = this.currentCategoryIndex;
         if (catIndex === null) return;
@@ -544,14 +679,12 @@ const app = {
         const fieldsList = document.getElementById('fields-list');
         fieldsList.innerHTML = '';
 
-        // 拖曳相關變數
         let draggedItem = null;
         let draggedIndex = null;
 
         category.fields.forEach((field, index) => {
             const item = document.createElement('div');
             item.className = 'draggable-item';
-            // 基本樣式，搭配 CSS 類別使用
             item.style.cssText = `display: flex; align-items: center; padding: 14px; background: #fff; margin-bottom: 8px; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: grab; user-select: none; touch-action: none;`;
             item.dataset.index = index;
             
@@ -561,7 +694,7 @@ const app = {
                 <span style="color:#ff3b30; cursor:pointer; font-size:1.1rem; padding:8px;" onclick="event.stopPropagation(); app.deleteFieldFromEditor(${index})">✕</span>
             `;
             
-            // --- 電腦版 Drag Events ---
+            // 電腦版 Drag Events
             item.draggable = true;
             item.addEventListener('dragstart', (e) => { 
                 e.dataTransfer.setData('text/plain', index); 
@@ -575,9 +708,7 @@ const app = {
                 this.swapFields(fromIndex, index);
             });
 
-            // --- 手機版 Touch Events (修復無法拖曳問題) ---
-            
-            // 1. 手指按下
+            // 手機版 Touch Events
             item.addEventListener('touchstart', (e) => {
                 draggedItem = item;
                 draggedIndex = index;
@@ -587,24 +718,19 @@ const app = {
                 item.style.zIndex = '1000';
             }, {passive: false});
 
-            // 2. 手指移動 (防止畫面捲動)
             item.addEventListener('touchmove', (e) => {
                 if (draggedItem) {
                     e.preventDefault(); 
                 }
             }, {passive: false});
 
-            // 3. 手指放開
             item.addEventListener('touchend', (e) => {
                 if (!draggedItem) return;
-
-                // 恢復樣式
                 item.style.opacity = '1';
                 item.style.background = '#fff';
                 item.style.transform = 'none';
                 item.style.zIndex = '';
 
-                // 取得手指放開位置的元素
                 const touch = e.changedTouches[0];
                 const elementUnderFinger = document.elementFromPoint(touch.clientX, touch.clientY);
                 const targetItem = elementUnderFinger ? elementUnderFinger.closest('.draggable-item') : null;
@@ -615,7 +741,6 @@ const app = {
                         this.swapFields(draggedIndex, toIndex);
                     }
                 }
-
                 draggedItem = null;
                 draggedIndex = null;
             });
@@ -626,19 +751,15 @@ const app = {
         setTimeout(() => document.getElementById('new-field-input').focus(), 100);
     },
 
-    // 輔助函式：交換欄位
     swapFields: function(fromIndex, toIndex) {
         if (fromIndex === toIndex) return;
-        
         const category = this.data[this.currentCategoryIndex];
         const fields = [...category.fields];
-        
         const [moved] = fields.splice(fromIndex, 1);
         fields.splice(toIndex, 0, moved);
-        
         category.fields = fields;
         this.save();
-        this.openFieldEditor(); // 重新渲染列表
+        this.openFieldEditor();
     },
 
     closeFieldEditor: function() {
@@ -672,6 +793,7 @@ const app = {
         this.openFieldEditor();
     },
 
+    // 圖片燈箱
     showImage: function(event, src) {
         event.stopPropagation();
         const modal = document.getElementById('image-modal');
@@ -683,6 +805,7 @@ const app = {
 
     closeImage: function() { document.getElementById('image-modal').classList.add('hidden'); },
 
+    // 儲存項目 (操作 this.data 後呼叫 this.save())
     saveItem: function() {
         const form = document.getElementById('item-form');
         const formData = new FormData(form);
@@ -720,83 +843,196 @@ const app = {
         }
     },
 
-    toggleSettings: function() { 
+    // ============================================================
+    // 6. 設定功能 (整合記帳本管理與賣場管理)
+    // ============================================================
+    toggleSettings: function() {
         const modal = document.getElementById('settings-modal');
         if (modal.classList.contains('hidden')) {
-            this.renderSettings(); 
+            // 根據當前是否在記帳本內，顯示不同的設定選單
+            if (this.currentCollection === null) {
+                this.renderTopLevelSettings();
+            } else {
+                this.renderCollectionSettings();
+            }
             modal.classList.remove('hidden');
         } else {
             modal.classList.add('hidden');
         }
     },
 
-    renderSettings: function() {
+    // 記帳本管理設定 (最上層)
+    renderTopLevelSettings: function() {
         const content = document.getElementById('settings-content');
-        
-        let catsHtml = this.data.map((cat, index) => `
+        let catsHtml = this.collections.map((col, index) => `
             <div class="cat-edit-item">
-                <div class="color-picker-wrapper" title="點擊修改顏色">
-                    <input type="color" value="${cat.color}" 
-                           onchange="app.updateCategoryColor(${index}, this.value)">
+                <div class="color-picker-wrapper">
+                    <input type="color" value="${col.color}" onchange="app.updateCollectionColor(${index}, this.value)">
                 </div>
-                
-                <input type="text" class="cat-name-input" value="${cat.name}" 
-                       onchange="app.updateCategoryName(${index}, this.value)" 
-                       placeholder="賣場名稱">
-                
-                <button class="cat-delete-btn" onclick="app.deleteCategory(${index})" title="刪除賣場">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                <input type="text" class="cat-name-input" value="${col.name}" onchange="app.updateCollectionName(${index}, this.value)">
+                <button class="cat-delete-btn" onclick="app.deleteCollection(${index})">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                 </button>
             </div>
         `).join('');
 
         content.innerHTML = `
             <div class="modal-header">
-                <h2>設定與管理</h2>
+                <h2>記帳本管理</h2>
+                <button class="close-modal-btn" onclick="app.toggleSettings()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-section-title">所有記帳本</div>
+                <div class="setting-list">${catsHtml}</div>
+                
+                <div style="margin-top:20px; text-align:center; color:#999; font-size:0.8rem;">
+                    提示：在主畫面右下角 + 可新增記帳本
+                </div>
+            </div>
+        `;
+    },
+
+    // 賣場分類設定 (記帳本內)
+    renderCollectionSettings: function() {
+        const content = document.getElementById('settings-content');
+
+        let catsHtml = this.data.map((cat, index) => `
+            <div class="cat-edit-item">
+                <div class="color-picker-wrapper" title="點擊修改顏色">
+                    <input type="color" value="${cat.color}" onchange="app.updateCategoryColor(${index}, this.value)">
+                </div>
+                <input type="text" class="cat-name-input" value="${cat.name}" onchange="app.updateCategoryName(${index}, this.value)">
+                <button class="cat-delete-btn" onclick="app.deleteCategory(${index})">刪除</button>
+            </div>
+        `).join('');
+
+        content.innerHTML = `
+            <div class="modal-header">
+                <h2>${this.collectionName} 設定</h2>
                 <button class="close-modal-btn" onclick="app.toggleSettings()">×</button>
             </div>
 
             <div class="modal-body">
-                <div class="setting-section-title">賣場分類與顏色</div>
-                <div class="setting-list">
-                    ${catsHtml}
+                <div class="form-group" style="margin-bottom:20px;">
+                    <label>記帳本名稱</label>
+                    <input type="text" class="cat-name-input" value="${this.collectionName}" onchange="app.updateCurrentCollectionName(this.value)">
                 </div>
-                
+                <div class="form-group" style="margin-bottom:30px;">
+                    <label>顏色</label>
+                    <input type="color" value="${this.collectionColor}" onchange="app.updateCurrentCollectionColor(this.value)">
+                </div>
+
+                <div class="setting-section-title">賣場分類</div>
+                <div class="setting-list">${catsHtml}</div>
+
                 <div class="quick-add-container">
                     <input type="text" id="quick-new-cat" class="quick-add-input" placeholder="輸入新賣場名稱...">
                     <button onclick="app.quickAddCategory()" class="quick-add-btn">新增</button>
                 </div>
 
-                <hr style="border:0; border-top:1px solid #f0f0f0; margin: 30px 0 20px 0;">
+                <hr style="border:0; border-top:1px solid #f0f0f0; margin:30px 0;">
 
-                <div class="setting-section-title">資料備份與還原</div>
+                <div class="setting-section-title">目前記帳本備份</div>
                 <div class="action-grid">
-                    <button onclick="app.exportData()" class="action-btn">
-                        📤 匯出備份
-                    </button>
+                    <button onclick="app.exportCurrentCollection()" class="action-btn">📤 匯出 ${this.collectionName}.json</button>
                     <label class="action-btn primary" style="display:flex; align-items:center; justify-content:center; margin:0;">
-                        📥 匯入資料
-                        <input type="file" accept=".json" onchange="app.importData(this)" style="display:none;">
+                        📥 匯入替換
+                        <input type="file" accept=".json" onchange="app.importCurrentCollection(this)" style="display:none;">
                     </label>
-                </div>
-
-                <div style="margin-top: 30px; text-align: center;">
-                    <button onclick="app.resetData()" class="reset-btn">
-                        清除所有資料並重置
-                    </button>
-                    <div style="font-size:0.75rem; color:#c7c7cc; margin-top:5px;">Version 1.3</div>
                 </div>
             </div>
         `;
+    },
+
+    // === 設定與操作函式 ===
+
+    updateCurrentCollectionName: function(newName) {
+        if (!newName.trim()) { alert("名稱不能為空"); return; }
+        this.collections[this.currentCollection].name = newName.trim();
+        this.collectionName = newName.trim();
+        this.saveCollections();
+        this.renderHome();
+    },
+
+    updateCurrentCollectionColor: function(newColor) {
+        this.collections[this.currentCollection].color = newColor;
+        this.collectionColor = newColor;
+        this.saveCollections();
+        this.renderHome();
+    },
+
+    updateCollectionName: function(index, newName) {
+        if (!newName.trim()) { alert("名稱不能為空"); return; }
+        this.collections[index].name = newName.trim();
+        this.saveCollections();
+        this.renderTopLevel();
+    },
+
+    updateCollectionColor: function(index, newColor) {
+        this.collections[index].color = newColor;
+        this.saveCollections();
+        this.renderTopLevel();
+    },
+
+    deleteCollection: function(index) {
+        if (confirm(`確定刪除記帳本「${this.collections[index].name}」？`)) {
+            this.collections.splice(index, 1);
+            this.saveCollections();
+            this.renderTopLevel();
+        }
+    },
+
+    exportCurrentCollection: function() {
+        const exportObj = {
+            timestamp: this.lastUpdated || Date.now(),
+            data: this.data
+        };
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj));
+        const a = document.createElement('a');
+        a.href = dataStr;
+        a.download = `${this.collectionName}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    },
+
+    importCurrentCollection: function(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const json = JSON.parse(e.target.result);
+                if (confirm("這將覆蓋目前記帳本的所有資料，確定嗎？")) {
+                    let newData = [];
+                    let newTimestamp = Date.now();
+                    if (json.data && Array.isArray(json.data)) {
+                        newData = json.data;
+                        newTimestamp = json.timestamp || Date.now();
+                    } else if (Array.isArray(json)) {
+                        newData = json;
+                    }
+                    // 更新當前資料與 collection 結構
+                    this.data = newData;
+                    this.lastUpdated = newTimestamp;
+                    this.collections[this.currentCollection].content = { timestamp: newTimestamp, data: newData };
+                    
+                    this.save(false);
+                    this.toggleSettings();
+                    this.renderHome();
+                }
+            } catch (err) {
+                alert("檔案格式錯誤");
+            }
+        };
+        reader.readAsText(file);
     },
 
     quickAddCategory: function() {
         const input = document.getElementById('quick-new-cat');
         const name = input.value.trim();
         if (!name) return;
-        
-        const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16);
-        
+        const randomColor = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
         this.data.push({
             id: Date.now().toString(),
             name: name,
@@ -805,118 +1041,116 @@ const app = {
             items: []
         });
         this.save();
-        this.renderSettings(); 
-        this.renderHome();     
         input.value = '';
+        this.renderCollectionSettings();
+        this.renderHome();
     },
 
     updateCategoryName: function(index, newName) {
-        if (!newName.trim()) {
-            alert("名稱不能為空");
-            this.renderSettings(); 
-            return;
-        }
-        this.data[index].name = newName;
+        if (!newName.trim()) { alert("名稱不能為空"); return; }
+        this.data[index].name = newName.trim();
         this.save();
-        this.renderHome(); 
+        this.renderHome();
     },
 
     updateCategoryColor: function(index, newColor) {
         this.data[index].color = newColor;
         this.save();
-        this.renderHome(); 
-    },
-
-    exportData: function() {
-        const exportObj = {
-            timestamp: this.lastUpdated || Date.now(),
-            data: this.data
-        };
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj));
-        const downloadAnchorNode = document.createElement('a');
-        downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", "shopping_backup_" + new Date().toISOString().slice(0,10) + ".json");
-        document.body.appendChild(downloadAnchorNode);
-        downloadAnchorNode.click();
-        downloadAnchorNode.remove();
-    },
-
-    importData: function(input) {
-        const file = input.files[0];
-        if(!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const json = JSON.parse(e.target.result);
-                if(confirm("這將會覆蓋目前的資料，確定嗎？")) {
-                    
-                    if (json.data && Array.isArray(json.data)) {
-                        this.data = json.data;
-                        this.lastUpdated = json.timestamp || Date.now();
-                    } else if (Array.isArray(json)) {
-                        this.data = json;
-                        this.lastUpdated = Date.now(); 
-                    }
-                    
-                    this.save(false);
-                    
-                    this.toggleSettings();
-                    this.renderHome();
-                }
-            } catch (err) { alert("檔案格式錯誤"); console.error(err); }
-        };
-        reader.readAsText(file);
-    },
-
-    resetData: function() {
-        if(confirm("警告：這將清空所有資料！")) {
-            localStorage.removeItem('shopData');
-            localStorage.removeItem('shopLastUpdated'); 
-            location.reload();
-        }
+        this.renderHome();
     },
 
     deleteCategory: function(index) {
         const catName = this.data[index].name;
-        if(confirm(`確定要刪除整個「${catName}」賣場嗎？\n此動作無法復原！`)) {
+        if (confirm(`確定要刪除整個「${catName}」賣場嗎？\n此動作無法復原！`)) {
             this.data.splice(index, 1);
             this.save();
-            this.renderSettings(); 
-            this.renderHome();     
+            this.renderHome();
         }
     },
 
-    // --- 新增的功能：打開新增賣場專用視窗 ---
+    // ============================================================
+    // 7. 新增記帳本 Modal
+    // ============================================================
+    openAddCollectionModal: function() {
+        const content = document.getElementById('settings-content');
+        const modal = document.getElementById('settings-modal');
+        const randomColor = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+
+        content.innerHTML = `
+            <div class="modal-header">
+                <h2>新增記帳本</h2>
+                <button class="close-modal-btn" onclick="document.getElementById('settings-modal').classList.add('hidden')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label>記帳本名稱</label>
+                    <input type="text" id="new-collection-name" placeholder="例如: 我的餐廳, 旅行花費..." autocomplete="off">
+                </div>
+                <div class="form-group" style="margin-bottom: 30px;">
+                    <label>選擇顏色</label>
+                    <div style="display:flex; align-items:center; gap:15px; background:#f9f9f9; padding:10px; border-radius:12px;">
+                        <input type="color" id="new-collection-color" value="${randomColor}" style="width:50px; height:50px; padding:0; border:none; border-radius:8px; cursor:pointer;">
+                        <span style="color:#666; font-size:0.9rem;">點擊色塊更換</span>
+                    </div>
+                </div>
+                <div class="action-group">
+                    <button class="btn-primary" onclick="app.confirmAddCollection()">確認新增</button>
+                </div>
+            </div>
+        `;
+
+        modal.classList.remove('hidden');
+        setTimeout(() => document.getElementById('new-collection-name').focus(), 100);
+    },
+
+    confirmAddCollection: function() {
+        const nameInput = document.getElementById('new-collection-name');
+        const colorInput = document.getElementById('new-collection-color');
+        const name = nameInput.value.trim();
+        const color = colorInput.value;
+
+        if (!name) {
+            alert("請輸入記帳本名稱");
+            return;
+        }
+
+        this.collections.push({
+            id: Date.now().toString(),
+            name: name,
+            color: color,
+            content: { timestamp: Date.now(), data: [] }
+        });
+
+        this.saveCollections();
+        document.getElementById('settings-modal').classList.add('hidden');
+        this.renderTopLevel();
+    },
+
+    // ============================================================
+    // 8. 新增賣場 Modal (維持原有 UI 風格)
+    // ============================================================
     openAddCategoryModal: function() {
         const content = document.getElementById('settings-content');
         const modal = document.getElementById('settings-modal');
-        
-        // 隨機預設一個顏色
-        const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+        const randomColor = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
 
-        // 產生專屬的新增介面 HTML
         content.innerHTML = `
             <div class="modal-header">
                 <h2>新增賣場</h2>
                 <button class="close-modal-btn" onclick="document.getElementById('settings-modal').classList.add('hidden')">×</button>
             </div>
-
             <div class="modal-body">
                 <div class="form-group" style="margin-bottom: 20px;">
                     <label>賣場名稱</label>
-                    <input type="text" id="new-cat-name-input" placeholder="例如: 全聯, 7-11
-                    ..." autocomplete="off">
+                    <input type="text" id="new-cat-name-input" placeholder="例如: 全聯, 7-11..." autocomplete="off">
                 </div>
-                
                 <div class="form-group" style="margin-bottom: 30px;">
                     <label>選擇顏色</label>
                     <div style="display:flex; align-items:center; gap:15px; background:#f9f9f9; padding:10px; border-radius:12px;">
-                        <input type="color" id="new-cat-color-input" value="${randomColor}" 
-                               style="width:50px; height:50px; padding:0; border:none; border-radius:8px; cursor:pointer;">
+                        <input type="color" id="new-cat-color-input" value="${randomColor}" style="width:50px; height:50px; padding:0; border:none; border-radius:8px; cursor:pointer;">
                         <span style="color:#666; font-size:0.9rem;">點擊色塊可更換顏色</span>
                     </div>
                 </div>
-
                 <div class="action-group">
                     <button class="btn-primary" onclick="app.confirmAddCategory()">確認新增</button>
                 </div>
@@ -924,19 +1158,15 @@ const app = {
         `;
 
         modal.classList.remove('hidden');
-        
-        // 自動聚焦在名稱輸入框
         setTimeout(() => {
             const input = document.getElementById('new-cat-name-input');
-            if(input) input.focus();
+            if (input) input.focus();
         }, 100);
     },
 
-    // --- 新增的功能：確認並儲存新賣場 ---
     confirmAddCategory: function() {
         const nameInput = document.getElementById('new-cat-name-input');
         const colorInput = document.getElementById('new-cat-color-input');
-        
         const name = nameInput.value.trim();
         const color = colorInput.value;
 
@@ -945,18 +1175,15 @@ const app = {
             return;
         }
 
-        // 新增資料
         this.data.push({
             id: Date.now().toString(),
             name: name,
             color: color,
-            fields: ['品名', '價格', '購買日期', '備註'], // 預設欄位
+            fields: ['品名', '價格', '購買日期', '備註'],
             items: []
         });
 
         this.save();
-        
-        // 關閉視窗並重新整理首頁
         document.getElementById('settings-modal').classList.add('hidden');
         this.renderHome();
     }
