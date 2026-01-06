@@ -315,6 +315,43 @@ const app = {
         };
     },
 
+    mergeData: function(targetData, sourceData) {
+        let addedCount = 0;
+
+        sourceData.forEach(sourceCat => {
+            // 1. 找尋目標是否有同名賣場
+            let targetCat = targetData.find(c => c.name === sourceCat.name);
+
+            if (!targetCat) {
+                // 如果賣場不存在，直接整個新增
+                // 重新生成 ID 以防衝突
+                const newCat = JSON.parse(JSON.stringify(sourceCat)); // Deep copy
+                newCat.id = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+                targetData.push(newCat);
+                addedCount += newCat.items.length;
+            } else {
+                // 2. 如果賣場存在，比對商品
+                const keys = this.identifyFields(sourceCat); // 取得識別欄位 (品名, 日期...)
+
+                sourceCat.items.forEach(sourceItem => {
+                    // 檢查是否重複：品名相同 且 日期相同 (視為同一筆交易)
+                    const isDuplicate = targetCat.items.some(targetItem => {
+                        const titleMatch = targetItem[keys.title] === sourceItem[keys.title];
+                        const dateMatch = targetItem[keys.date] === sourceItem[keys.date];
+                        // 嚴謹一點可以加比對價格，但依照你的需求只要日期重複就不匯入
+                        return titleMatch && dateMatch;
+                    });
+
+                    if (!isDuplicate) {
+                        targetCat.items.push(sourceItem);
+                        addedCount++;
+                    }
+                });
+            }
+        });
+        return addedCount;
+    },
+
     // 搜尋功能 (已適配多記帳本)
     performSearch: function(keyword) {
         const container = document.getElementById('app-container');
@@ -862,6 +899,7 @@ const app = {
     },
 
     // 記帳本管理設定 (最上層)
+// 更新：記帳本管理設定 (最上層)
     renderTopLevelSettings: function() {
         const content = document.getElementById('settings-content');
         let catsHtml = this.collections.map((col, index) => `
@@ -885,11 +923,115 @@ const app = {
                 <div class="setting-section-title">所有記帳本</div>
                 <div class="setting-list">${catsHtml}</div>
                 
-                <div style="margin-top:20px; text-align:center; color:#999; font-size:0.8rem;">
+                <div style="margin-top:20px; text-align:center; color:#999; font-size:0.8rem; margin-bottom: 20px;">
                     提示：在主畫面右下角 + 可新增記帳本
                 </div>
+
+                <hr style="border:0; border-top:1px solid #f0f0f0; margin:20px 0;">
+                
+                <div class="setting-section-title">批次備份與還原</div>
+                <div class="action-grid">
+                    <button onclick="app.exportAllCollections()" class="action-btn">
+                        📤 匯出所有帳本
+                    </button>
+                    <label class="action-btn primary" style="display:flex; align-items:center; justify-content:center; margin:0;">
+                        📥 匯入帳本 (可多選)
+                        <input type="file" accept=".json" multiple onchange="app.importTopLevelCollections(this)" style="display:none;">
+                    </label>
+                </div>
+                <p style="font-size:0.8rem; color:#888; margin-top:8px;">
+                    * 匯入時若帳本名稱相同，會自動合併資料 (同日期商品不重複)。
+                </p>
             </div>
         `;
+    },
+
+    // 匯出所有記帳本
+    exportAllCollections: function() {
+        if (this.collections.length === 0) {
+            alert("目前沒有記帳本可匯出");
+            return;
+        }
+
+        // 使用 Loop 間隔觸發下載，避免瀏覽器攔截
+        this.collections.forEach((col, index) => {
+            setTimeout(() => {
+                const exportObj = {
+                    name: col.name, // 標記名稱以便匯入時識別
+                    timestamp: col.content.timestamp,
+                    data: col.content.data
+                };
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj));
+                const a = document.createElement('a');
+                a.href = dataStr;
+                a.download = `${col.name}.json`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            }, index * 200); // 每 200ms 下載一個
+        });
+    },
+
+    // 最上層匯入 (支援多檔 + 匯整)
+    importTopLevelCollections: async function(input) {
+        const files = input.files;
+        if (!files || files.length === 0) return;
+
+        let totalAdded = 0;
+        let processedCount = 0;
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const text = await file.text(); // 使用 Promise 讀取
+            
+            try {
+                const json = JSON.parse(text);
+                // 判斷是單純 data 陣列 (舊版) 還是包含 name 的物件 (新版)
+                let importName = json.name || file.name.replace('.json', '');
+                let importData = Array.isArray(json) ? json : (json.data || []);
+                let importTime = json.timestamp || Date.now();
+
+                // 檢查是否已存在同名帳本
+                let targetCollection = this.collections.find(c => c.name === importName);
+
+                if (targetCollection) {
+                    // === 情況 A: 帳本已存在 -> 匯整 ===
+                    const added = this.mergeData(targetCollection.content.data, importData);
+                    totalAdded += added;
+                    // 更新時間戳記
+                    if (importTime > targetCollection.content.timestamp) {
+                        targetCollection.content.timestamp = importTime;
+                    }
+                } else {
+                    // === 情況 B: 帳本不存在 -> 新增 ===
+                    const randomColor = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+                    this.collections.push({
+                        id: Date.now().toString() + i, // 避免 ID 重複
+                        name: importName,
+                        color: randomColor,
+                        content: {
+                            timestamp: importTime,
+                            data: importData
+                        }
+                    });
+                    // 計算新增的項目數
+                    const count = importData.reduce((acc, cat) => acc + cat.items.length, 0);
+                    totalAdded += count;
+                }
+                processedCount++;
+
+            } catch (e) {
+                console.error(e);
+                alert(`檔案 ${file.name} 格式錯誤或損毀`);
+            }
+        }
+
+        this.saveCollections();
+        this.renderTopLevel(); // 重新渲染列表
+        alert(`匯入完成！\n共處理 ${processedCount} 個檔案\n新增了 ${totalAdded} 筆紀錄`);
+        
+        // 清空 input 讓下次選同樣檔案能觸發
+        input.value = ''; 
     },
 
     // 賣場分類設定 (記帳本內)
@@ -996,6 +1138,7 @@ const app = {
         a.remove();
     },
 
+// 更新：單一帳本匯入 (改為彙整模式)
     importCurrentCollection: function(input) {
         const file = input.files[0];
         if (!file) return;
@@ -1003,27 +1146,38 @@ const app = {
         reader.onload = (e) => {
             try {
                 const json = JSON.parse(e.target.result);
-                if (confirm("這將覆蓋目前記帳本的所有資料，確定嗎？")) {
-                    let newData = [];
-                    let newTimestamp = Date.now();
-                    if (json.data && Array.isArray(json.data)) {
-                        newData = json.data;
-                        newTimestamp = json.timestamp || Date.now();
-                    } else if (Array.isArray(json)) {
-                        newData = json;
-                    }
-                    // 更新當前資料與 collection 結構
-                    this.data = newData;
-                    this.lastUpdated = newTimestamp;
-                    this.collections[this.currentCollection].content = { timestamp: newTimestamp, data: newData };
+                // 兼容性處理：取得 data 陣列
+                let newData = [];
+                if (json.data && Array.isArray(json.data)) {
+                    newData = json.data;
+                } else if (Array.isArray(json)) {
+                    newData = json;
+                }
+
+                if (newData.length === 0) {
+                    alert("檔案內沒有資料");
+                    return;
+                }
+
+                if (confirm(`確定要將資料匯入至「${this.collectionName}」嗎？\n相同的商品(同名+同日期)將自動略過，不重複計算。`)) {
                     
-                    this.save(false);
-                    this.toggleSettings();
-                    this.renderHome();
+                    // 使用共用的 mergeData 函式
+                    const addedCount = this.mergeData(this.data, newData);
+
+                    this.lastUpdated = Date.now();
+                    this.collections[this.currentCollection].content.timestamp = this.lastUpdated;
+                    
+                    this.save(true); // 儲存並更新時間
+                    this.toggleSettings(); // 關閉設定視窗
+                    this.renderHome(); // 重新渲染畫面
+                    
+                    alert(`匯入完成！新增了 ${addedCount} 筆新資料。`);
                 }
             } catch (err) {
+                console.error(err);
                 alert("檔案格式錯誤");
             }
+            input.value = ''; // 清空以利重複選取
         };
         reader.readAsText(file);
     },
